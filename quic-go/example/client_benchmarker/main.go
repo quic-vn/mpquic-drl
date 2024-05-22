@@ -3,21 +3,49 @@ package main
 import (
 	"bytes"
 	"crypto/tls"
+	"encoding/csv"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"os"
 	"sync"
 	"time"
-	// "encoding/csv"
-	// "fmt"
 
 	quic "github.com/lucas-clemente/quic-go"
 
 	"github.com/lucas-clemente/quic-go/h2quic"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
+
+func sendTrainSignal() {
+	data := map[string]interface{}{
+		"train_flag": true,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("Error encoding JSON:", err)
+		return
+	}
+
+	response, err := http.Post("http://10.0.0.20:8080/flag_training", "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		fmt.Println("Error2:", err)
+		return
+	}
+	defer response.Body.Close()
+
+	var datarp map[string]interface{}
+	err = json.NewDecoder(response.Body).Decode(&datarp)
+	if err != nil {
+		fmt.Println("Error3:", err)
+		return
+	}
+	fmt.Println("Message:", datarp["message"])
+}
 
 func main() {
 
@@ -31,18 +59,11 @@ func main() {
 	flag.Parse()
 	urls := flag.Args()
 
-	// f, err := os.OpenFile("/App/output/result"+ *address + ".csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	// if err != nil{
-	// 	panic(err)
-	// }
-	// csvwriter := csv.NewWriter(f)
-
-	// os.Remove("/notebooks/result.pdf")
-    // destination, err := os.Create("/notebooks/result.pdf")
-    // if err != nil {
-	// 	panic(err)
-    // }
-    // defer destination.Close()
+	f, err := os.OpenFile("./logs/result.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		panic(err)
+	}
+	csvwriter := csv.NewWriter(f)
 
 	if *verbose {
 		utils.SetLogLevel(utils.LogLevelDebug)
@@ -69,7 +90,7 @@ func main() {
 	}
 
 	var wg sync.WaitGroup
-	for i:= 0; i < *num; i++ {
+	for i := 0; i < *num; i++ {
 		wg.Add(len(urls))
 		for _, addr := range urls {
 			utils.Infof("GET %s", addr)
@@ -85,20 +106,22 @@ func main() {
 				if err != nil {
 					//panic(err)
 					utils.Infof("%f", float64(30000))
-					// csvwriter.Write([]string{fmt.Sprint(float64(30000))})
+					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
 					wg.Done()
-				}else {
+				} else {
 					elapsed := time.Since(start)
 					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
-					// csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds())/1000000)})
+					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
+					csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
 					// io.Copy(destination, body)
 					wg.Done()
 				}
 				// csvwriter.Flush()
-				
+
 			}(addr)
 		}
 		wg.Wait()
-		time.Sleep(time.Duration(*sleeptime)*time.Second)
+		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
+	sendTrainSignal()
 }

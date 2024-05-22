@@ -1,0 +1,9 @@
+2024/05/22 11:48:45 GET https://10.0.0.20:6121/files/demo2
+2024/05/22 11:48:45 Starting new connection to 10.0.0.20 ([::]:50990 -> 10.0.0.20:6121), connectionID e67cbd8fa91df935, version 512
+2024/05/22 11:48:45 Queueing packet 0x7 for later decryption
+2024/05/22 11:48:48 Info for stream 5 of e67cbd8fa91df935
+2024/05/22 11:48:48 Path 0: sent 14 retrans 0 lost 0; rcv 18; loss rate: 0.000000
+2024/05/22 11:48:48 Path 1: sent 662 retrans 3 lost 1; rcv 1278; loss rate: 0.001511
+2024/05/22 11:48:48 Path 3: sent 219 retrans 2 lost 1; rcv 379; loss rate: 0.004566
+2024/05/22 11:48:48 2394.858158
+Message: <nil>

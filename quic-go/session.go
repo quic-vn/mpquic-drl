@@ -8,6 +8,7 @@ import (
 	"net"
 	"sync"
 	"time"
+
 	// "github.com/lucas-clemente/quic-go/internal/multiclients"
 
 	"github.com/lucas-clemente/quic-go/ackhandler"
@@ -651,9 +652,11 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "qsat" || s.scheduler.SchedulerName == "fuzzyqsat") {
 		s.scheduler.GetStateAndRewardQlearning(s, pth)
 	}
-
+	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "dqn" || s.scheduler.SchedulerName == "sac") {
+		s.scheduler.GetStateAndRewardDQN(s, pth)
+	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "multiclients" {
-		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}]; ok {
+		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, s.scheduler.current_Prob}]; ok {
 			if oldLost == newLost {
 				s.scheduler.GetStateAndRewardMultiClients(s, pth)
 			} else {

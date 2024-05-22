@@ -1,0 +1,991 @@
+Serving new connection: 431aab51b145f0f6, version 512 from 172.16.0.3:33977
+MultiLen:  1
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 431aab51b145f0f6
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 52.269ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 863 retrans 14 lost 14; rcv 409 rtt 23.441ms; loss rate: 0.016222
+Congestion Window: 27740
+Path 3: sent 805 retrans 7 lost 7; rcv 423 rtt 31.879ms; loss rate: 0.008696
+Congestion Window: 27740
+Serving new connection: 75b62301dd6d37fc, version 512 from 172.16.0.3:50249
+MultiLen:  2
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 75b62301dd6d37fc
+Path 3: sent 685 retrans 15 lost 15; rcv 321 rtt 31.859ms; loss rate: 0.021898
+Congestion Window: 35040
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 41.712ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 968 retrans 8 lost 8; rcv 474 rtt 21.812ms; loss rate: 0.008264
+Congestion Window: 36500
+Info for stream 5 of 75b62301dd6d37fc
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 41.712ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 971 retrans 9 lost 8; rcv 488 rtt 22.135ms; loss rate: 0.008239
+Congestion Window: 36500
+Path 3: sent 686 retrans 16 lost 15; rcv 333 rtt 32.117ms; loss rate: 0.021866
+Congestion Window: 35040
+Info for stream 5 of 75b62301dd6d37fc
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 41.712ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 972 retrans 10 lost 8; rcv 488 rtt 22.135ms; loss rate: 0.008230
+Congestion Window: 36500
+Path 3: sent 686 retrans 16 lost 15; rcv 333 rtt 32.117ms; loss rate: 0.021866
+Congestion Window: 35040
+Info for stream 5 of 75b62301dd6d37fc
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 41.712ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 973 retrans 13 lost 11; rcv 488 rtt 22.135ms; loss rate: 0.011305
+Congestion Window: 2920
+Path 3: sent 688 retrans 16 lost 15; rcv 333 rtt 32.117ms; loss rate: 0.021802
+Congestion Window: 35040
+Info for stream 5 of 75b62301dd6d37fc
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 41.712ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 973 retrans 13 lost 11; rcv 488 rtt 22.135ms; loss rate: 0.011305
+Congestion Window: 2920
+Path 3: sent 689 retrans 17 lost 15; rcv 333 rtt 32.117ms; loss rate: 0.021771
+Congestion Window: 35040
+Serving new connection: 65a02094b2662ef9, version 512 from 172.16.0.3:41309
+MultiLen:  3
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 65a02094b2662ef9
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 45.352ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1012 retrans 7 lost 7; rcv 521 rtt 22.303ms; loss rate: 0.006917
+Congestion Window: 40880
+Path 3: sent 639 retrans 9 lost 9; rcv 308 rtt 32.543ms; loss rate: 0.014085
+Congestion Window: 36500
+Serving new connection: 5d08b95177a7a605, version 512 from 172.16.0.3:56773
+MultiLen:  4
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 5d08b95177a7a605
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.574ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 919 retrans 13 lost 13; rcv 479 rtt 21.948ms; loss rate: 0.014146
+Congestion Window: 30660
+Path 3: sent 812 retrans 67 lost 67; rcv 361 rtt 31.476ms; loss rate: 0.082512
+Congestion Window: 27740
+Info for stream 5 of 5d08b95177a7a605
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.574ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 921 retrans 14 lost 13; rcv 491 rtt 22.384ms; loss rate: 0.014115
+Congestion Window: 30660
+Path 3: sent 813 retrans 67 lost 67; rcv 370 rtt 31.459ms; loss rate: 0.082411
+Congestion Window: 27740
+Info for stream 5 of 5d08b95177a7a605
+Path 1: sent 922 retrans 15 lost 13; rcv 491 rtt 22.384ms; loss rate: 0.014100
+Congestion Window: 30660
+Path 3: sent 813 retrans 67 lost 67; rcv 370 rtt 31.459ms; loss rate: 0.082411
+Congestion Window: 27740
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.574ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 5d08b95177a7a605
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.574ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 924 retrans 18 lost 16; rcv 491 rtt 22.384ms; loss rate: 0.017316
+Congestion Window: 2920
+Path 3: sent 814 retrans 68 lost 67; rcv 370 rtt 31.459ms; loss rate: 0.082310
+Congestion Window: 27740
+Serving new connection: 2573cc84dcfdf480, version 512 from 172.16.0.3:33897
+MultiLen:  5
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 2573cc84dcfdf480
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.52ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1038 retrans 26 lost 26; rcv 502 rtt 21.782ms; loss rate: 0.025048
+Congestion Window: 37960
+Path 3: sent 660 retrans 38 lost 38; rcv 290 rtt 31.806ms; loss rate: 0.057576
+Congestion Window: 36500
+Serving new connection: 8b3711857a4a88f, version 512 from 172.16.0.3:60723
+MultiLen:  6
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 8b3711857a4a88f
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 47.349ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 769 retrans 14 lost 14; rcv 396 rtt 22.077ms; loss rate: 0.018205
+Congestion Window: 26280
+Path 3: sent 909 retrans 34 lost 34; rcv 420 rtt 32.093ms; loss rate: 0.037404
+Congestion Window: 33580
+Serving new connection: 478d65c4d52875ec, version 512 from 172.16.0.3:45453
+MultiLen:  7
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 478d65c4d52875ec
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 43.999ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 999 retrans 31 lost 31; rcv 487 rtt 23.572ms; loss rate: 0.031031
+Congestion Window: 49640
+Path 3: sent 756 retrans 77 lost 77; rcv 316 rtt 32.538ms; loss rate: 0.101852
+Congestion Window: 56940
+Serving new connection: 62195da5dac9a470, version 512 from 172.16.0.3:39421
+MultiLen:  8
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 62195da5dac9a470
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.359ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 732 retrans 12 lost 12; rcv 376 rtt 21.749ms; loss rate: 0.016393
+Congestion Window: 27740
+Path 3: sent 1010 retrans 82 lost 82; rcv 448 rtt 32.821ms; loss rate: 0.081188
+Congestion Window: 48180
+Serving new connection: 289b582f96af8cce, version 512 from 172.16.0.3:60123
+MultiLen:  9
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 289b582f96af8cce
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 969 retrans 27 lost 27; rcv 475 rtt 22.512ms; loss rate: 0.027864
+Congestion Window: 26280
+Path 3: sent 724 retrans 30 lost 30; rcv 345 rtt 32.08ms; loss rate: 0.041436
+Congestion Window: 26280
+Info for stream 5 of 289b582f96af8cce
+Path 1: sent 971 retrans 28 lost 27; rcv 484 rtt 22.626ms; loss rate: 0.027806
+Congestion Window: 26280
+Path 3: sent 725 retrans 30 lost 30; rcv 355 rtt 31.912ms; loss rate: 0.041379
+Congestion Window: 26280
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 289b582f96af8cce
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 972 retrans 29 lost 27; rcv 484 rtt 22.626ms; loss rate: 0.027778
+Congestion Window: 26280
+Path 3: sent 725 retrans 30 lost 30; rcv 355 rtt 31.912ms; loss rate: 0.041379
+Congestion Window: 26280
+Info for stream 5 of 289b582f96af8cce
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 972 retrans 30 lost 28; rcv 484 rtt 22.626ms; loss rate: 0.028807
+Congestion Window: 2920
+Path 3: sent 726 retrans 30 lost 30; rcv 355 rtt 31.912ms; loss rate: 0.041322
+Congestion Window: 26280
+Info for stream 5 of 289b582f96af8cce
+Path 3: sent 727 retrans 31 lost 30; rcv 355 rtt 31.912ms; loss rate: 0.041265
+Congestion Window: 26280
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 973 retrans 30 lost 28; rcv 484 rtt 22.626ms; loss rate: 0.028777
+Congestion Window: 2920
+Info for stream 5 of 289b582f96af8cce
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.895ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 973 retrans 30 lost 28; rcv 484 rtt 22.626ms; loss rate: 0.028777
+Congestion Window: 2920
+Path 3: sent 728 retrans 32 lost 30; rcv 355 rtt 31.912ms; loss rate: 0.041209
+Congestion Window: 26280
+Serving new connection: 905d6787f9feafd0, version 512 from 172.16.0.3:45511
+MultiLen:  10
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 905d6787f9feafd0
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.708ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1039 retrans 48 lost 48; rcv 494 rtt 22.131ms; loss rate: 0.046198
+Congestion Window: 24820
+Path 3: sent 733 retrans 71 lost 71; rcv 288 rtt 32.135ms; loss rate: 0.096862
+Congestion Window: 36500
+Serving new connection: b027d08907d43d7, version 512 from 172.16.0.3:45513
+MultiLen:  11
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of b027d08907d43d7
+Path 1: sent 945 retrans 11 lost 11; rcv 495 rtt 21.726ms; loss rate: 0.011640
+Congestion Window: 18980
+Path 3: sent 731 retrans 20 lost 20; rcv 362 rtt 31.962ms; loss rate: 0.027360
+Congestion Window: 17520
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.48ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of b027d08907d43d7
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.48ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 947 retrans 12 lost 11; rcv 503 rtt 21.715ms; loss rate: 0.011616
+Congestion Window: 18980
+Path 3: sent 732 retrans 20 lost 20; rcv 368 rtt 31.93ms; loss rate: 0.027322
+Congestion Window: 17520
+Info for stream 5 of b027d08907d43d7
+Path 1: sent 951 retrans 17 lost 15; rcv 503 rtt 21.715ms; loss rate: 0.015773
+Congestion Window: 2920
+Path 3: sent 733 retrans 22 lost 20; rcv 368 rtt 31.93ms; loss rate: 0.027285
+Congestion Window: 17520
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.48ms; loss rate: 0.000000
+Congestion Window: 46720
+Serving new connection: 9c77570cbe43f694, version 512 from 172.16.0.3:57885
+MultiLen:  12
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 9c77570cbe43f694
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.16ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 948 retrans 8 lost 8; rcv 505 rtt 21.931ms; loss rate: 0.008439
+Congestion Window: 26280
+Path 3: sent 782 retrans 82 lost 82; rcv 332 rtt 31.491ms; loss rate: 0.104859
+Congestion Window: 24820
+Serving new connection: bb7bb8758c258fe2, version 512 from 172.16.0.3:37769
+MultiLen:  13
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of bb7bb8758c258fe2
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.155ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 890 retrans 15 lost 15; rcv 421 rtt 22.827ms; loss rate: 0.016854
+Congestion Window: 33580
+Path 3: sent 809 retrans 40 lost 40; rcv 402 rtt 31.716ms; loss rate: 0.049444
+Congestion Window: 40880
+Serving new connection: 6edb66ffb2e9385f, version 512 from 172.16.0.3:50561
+MultiLen:  14
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 6edb66ffb2e9385f
+Path 1: sent 880 retrans 12 lost 12; rcv 462 rtt 22.175ms; loss rate: 0.013636
+Congestion Window: 26280
+Path 3: sent 781 retrans 17 lost 17; rcv 364 rtt 31.94ms; loss rate: 0.021767
+Congestion Window: 36500
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 6edb66ffb2e9385f
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 882 retrans 13 lost 12; rcv 471 rtt 22.229ms; loss rate: 0.013605
+Congestion Window: 26280
+Path 3: sent 782 retrans 17 lost 17; rcv 378 rtt 32.201ms; loss rate: 0.021739
+Congestion Window: 36500
+Info for stream 5 of 6edb66ffb2e9385f
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 883 retrans 14 lost 12; rcv 471 rtt 22.229ms; loss rate: 0.013590
+Congestion Window: 26280
+Path 3: sent 782 retrans 17 lost 17; rcv 378 rtt 32.201ms; loss rate: 0.021739
+Congestion Window: 36500
+Info for stream 5 of 6edb66ffb2e9385f
+Path 3: sent 783 retrans 17 lost 17; rcv 378 rtt 32.201ms; loss rate: 0.021711
+Congestion Window: 36500
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 883 retrans 15 lost 13; rcv 471 rtt 22.229ms; loss rate: 0.014723
+Congestion Window: 2920
+Info for stream 5 of 6edb66ffb2e9385f
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 884 retrans 15 lost 13; rcv 471 rtt 22.229ms; loss rate: 0.014706
+Congestion Window: 2920
+Path 3: sent 784 retrans 18 lost 17; rcv 378 rtt 32.201ms; loss rate: 0.021684
+Congestion Window: 36500
+Info for stream 5 of 6edb66ffb2e9385f
+Path 0: sent 9 retrans 0 lost 0; rcv 8 rtt 37.324ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 884 retrans 15 lost 13; rcv 471 rtt 22.229ms; loss rate: 0.014706
+Congestion Window: 2920
+Path 3: sent 785 retrans 19 lost 17; rcv 378 rtt 32.201ms; loss rate: 0.021656
+Congestion Window: 36500
+Serving new connection: a6c21fb4d45b59ec, version 512 from 172.16.0.3:44707
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of a6c21fb4d45b59ec
+Path 3: sent 859 retrans 84 lost 84; rcv 352 rtt 31.909ms; loss rate: 0.097788
+Congestion Window: 40880
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.848ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 891 retrans 15 lost 15; rcv 438 rtt 21.774ms; loss rate: 0.016835
+Congestion Window: 24820
+Serving new connection: c3c7fdd78c4b3cd4, version 512 from 172.16.0.3:56944
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of c3c7fdd78c4b3cd4
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.299ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 961 retrans 5 lost 5; rcv 450 rtt 22.074ms; loss rate: 0.005203
+Congestion Window: 52560
+Path 3: sent 727 retrans 44 lost 44; rcv 325 rtt 34.282ms; loss rate: 0.060523
+Congestion Window: 58400
+Closing connection 431aab51b145f0f6
+Serving new connection: 9ff1a54ea16f2002, version 512 from 172.16.0.3:37970
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 9ff1a54ea16f2002
+Path 1: sent 1199 retrans 19 lost 19; rcv 603 rtt 21.884ms; loss rate: 0.015847
+Congestion Window: 42340
+Path 3: sent 468 retrans 10 lost 10; rcv 234 rtt 32.138ms; loss rate: 0.021368
+Congestion Window: 24820
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 37.134ms; loss rate: 0.000000
+Congestion Window: 46720
+Closing connection 75b62301dd6d37fc
+Serving new connection: 167b8157a44b76ae, version 512 from 172.16.0.3:39184
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 65a02094b2662ef9
+Info for stream 5 of 167b8157a44b76ae
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.753ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 952 retrans 19 lost 19; rcv 504 rtt 21.632ms; loss rate: 0.019958
+Congestion Window: 24820
+Path 3: sent 728 retrans 23 lost 23; rcv 349 rtt 31.573ms; loss rate: 0.031593
+Congestion Window: 17520
+Serving new connection: be1b523da109cbf0, version 512 from 172.16.0.3:43346
+MultiLen:  16
+Closing connection 5d08b95177a7a605
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of be1b523da109cbf0
+Path 3: sent 1123 retrans 93 lost 93; rcv 487 rtt 33.171ms; loss rate: 0.082814
+Congestion Window: 62780
+Path 0: sent 9 retrans 2 lost 0; rcv 7 rtt 51.617ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 638 retrans 16 lost 16; rcv 336 rtt 22.337ms; loss rate: 0.025078
+Congestion Window: 18980
+Closing connection 2573cc84dcfdf480
+Serving new connection: a9ad95027262500f, version 512 from 172.16.0.3:53197
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of a9ad95027262500f
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 47.376ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 654 retrans 23 lost 23; rcv 350 rtt 22.204ms; loss rate: 0.035168
+Congestion Window: 24820
+Path 3: sent 1008 retrans 5 lost 5; rcv 476 rtt 31.471ms; loss rate: 0.004960
+Congestion Window: 75920
+Serving new connection: b722b559eb2eb0fb, version 512 from 172.16.0.3:58313
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 8b3711857a4a88f
+Info for stream 5 of b722b559eb2eb0fb
+Path 1: sent 1161 retrans 68 lost 68; rcv 533 rtt 26.239ms; loss rate: 0.058570
+Congestion Window: 83220
+Path 3: sent 556 retrans 4 lost 4; rcv 254 rtt 34.248ms; loss rate: 0.007194
+Congestion Window: 62780
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.227ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of b722b559eb2eb0fb
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.227ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1165 retrans 69 lost 68; rcv 565 rtt 26.909ms; loss rate: 0.058369
+Congestion Window: 83220
+Path 3: sent 558 retrans 5 lost 4; rcv 276 rtt 33.142ms; loss rate: 0.007168
+Congestion Window: 62780
+Info for stream 5 of b722b559eb2eb0fb
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.227ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1166 retrans 70 lost 68; rcv 565 rtt 26.909ms; loss rate: 0.058319
+Congestion Window: 83220
+Path 3: sent 558 retrans 5 lost 4; rcv 276 rtt 33.142ms; loss rate: 0.007168
+Congestion Window: 62780
+Info for stream 5 of b722b559eb2eb0fb
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.227ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1167 retrans 73 lost 71; rcv 565 rtt 26.909ms; loss rate: 0.060840
+Congestion Window: 2920
+Path 3: sent 560 retrans 5 lost 4; rcv 276 rtt 33.142ms; loss rate: 0.007143
+Congestion Window: 62780
+Info for stream 5 of b722b559eb2eb0fb
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.227ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1167 retrans 73 lost 71; rcv 565 rtt 26.909ms; loss rate: 0.060840
+Congestion Window: 2920
+Path 3: sent 561 retrans 6 lost 4; rcv 276 rtt 33.142ms; loss rate: 0.007130
+Congestion Window: 62780
+Closing connection 478d65c4d52875ec
+Serving new connection: af4377884e129bba, version 512 from 172.16.0.3:45845
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of af4377884e129bba
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 42.606ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 797 retrans 8 lost 8; rcv 385 rtt 21.944ms; loss rate: 0.010038
+Congestion Window: 27740
+Path 3: sent 905 retrans 53 lost 53; rcv 442 rtt 31.95ms; loss rate: 0.058564
+Congestion Window: 27740
+Closing connection 62195da5dac9a470
+Serving new connection: a7be9e34293f6437, version 512 from 172.16.0.3:41326
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of a7be9e34293f6437
+Path 0: sent 8 retrans 1 lost 1; rcv 8 rtt 48.209ms; loss rate: 0.125000
+Congestion Window: 39420
+Path 1: sent 755 retrans 19 lost 19; rcv 399 rtt 22.299ms; loss rate: 0.025166
+Congestion Window: 20440
+Path 3: sent 932 retrans 26 lost 26; rcv 430 rtt 32.397ms; loss rate: 0.027897
+Congestion Window: 37960
+Closing connection 289b582f96af8cce
+Info for stream 5 of a7be9e34293f6437
+Path 0: sent 8 retrans 1 lost 1; rcv 8 rtt 48.209ms; loss rate: 0.125000
+Congestion Window: 39420
+Path 1: sent 761 retrans 20 lost 19; rcv 407 rtt 22.12ms; loss rate: 0.024967
+Congestion Window: 21900
+Path 3: sent 933 retrans 29 lost 28; rcv 443 rtt 32.339ms; loss rate: 0.030011
+Congestion Window: 32120
+Info for stream 5 of a7be9e34293f6437
+Path 0: sent 8 retrans 1 lost 1; rcv 8 rtt 48.209ms; loss rate: 0.125000
+Congestion Window: 39420
+Path 1: sent 762 retrans 21 lost 19; rcv 407 rtt 22.12ms; loss rate: 0.024934
+Congestion Window: 21900
+Path 3: sent 933 retrans 29 lost 28; rcv 443 rtt 32.339ms; loss rate: 0.030011
+Congestion Window: 32120
+Info for stream 5 of a7be9e34293f6437
+Path 0: sent 8 retrans 1 lost 1; rcv 8 rtt 48.209ms; loss rate: 0.125000
+Congestion Window: 39420
+Path 1: sent 762 retrans 23 lost 21; rcv 407 rtt 22.12ms; loss rate: 0.027559
+Congestion Window: 2920
+Path 3: sent 934 retrans 29 lost 28; rcv 443 rtt 32.339ms; loss rate: 0.029979
+Congestion Window: 32120
+Info for stream 5 of a7be9e34293f6437
+Path 0: sent 8 retrans 1 lost 1; rcv 8 rtt 48.209ms; loss rate: 0.125000
+Congestion Window: 39420
+Path 1: sent 763 retrans 23 lost 21; rcv 407 rtt 22.12ms; loss rate: 0.027523
+Congestion Window: 2920
+Path 3: sent 935 retrans 30 lost 28; rcv 443 rtt 32.339ms; loss rate: 0.029947
+Congestion Window: 32120
+Serving new connection: bcab5fe6c1e3e46f, version 512 from 172.16.0.3:46479
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of bcab5fe6c1e3e46f
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 40.842ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 679 retrans 16 lost 16; rcv 362 rtt 22.132ms; loss rate: 0.023564
+Congestion Window: 16060
+Path 3: sent 1126 retrans 142 lost 142; rcv 466 rtt 32.044ms; loss rate: 0.126110
+Congestion Window: 42340
+Closing connection 905d6787f9feafd0
+Serving new connection: 15411502ce5f627, version 512 from 172.16.0.3:33179
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 15411502ce5f627
+Path 1: sent 873 retrans 20 lost 20; rcv 436 rtt 21.645ms; loss rate: 0.022910
+Congestion Window: 18980
+Path 3: sent 873 retrans 84 lost 84; rcv 368 rtt 32.96ms; loss rate: 0.096220
+Congestion Window: 32120
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.643ms; loss rate: 0.000000
+Congestion Window: 46720
+Closing connection b027d08907d43d7
+Serving new connection: 58694a8528fac9b3, version 512 from 172.16.0.3:39852
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 58694a8528fac9b3
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 46.1ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 883 retrans 20 lost 20; rcv 435 rtt 21.759ms; loss rate: 0.022650
+Congestion Window: 37960
+Path 3: sent 845 retrans 66 lost 66; rcv 347 rtt 32.359ms; loss rate: 0.078107
+Congestion Window: 83220
+Closing connection 9c77570cbe43f694
+Serving new connection: 9e403187ca1554ad, version 512 from 172.16.0.3:41147
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 9e403187ca1554ad
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1126 retrans 18 lost 18; rcv 568 rtt 21.914ms; loss rate: 0.015986
+Congestion Window: 30660
+Path 3: sent 575 retrans 26 lost 26; rcv 259 rtt 31.68ms; loss rate: 0.045217
+Congestion Window: 30660
+Info for stream 5 of 9e403187ca1554ad
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1131 retrans 21 lost 21; rcv 580 rtt 22.227ms; loss rate: 0.018568
+Congestion Window: 24820
+Path 3: sent 576 retrans 26 lost 26; rcv 270 rtt 31.895ms; loss rate: 0.045139
+Congestion Window: 30660
+Info for stream 5 of 9e403187ca1554ad
+Path 1: sent 1132 retrans 22 lost 21; rcv 581 rtt 22.161ms; loss rate: 0.018551
+Congestion Window: 24820
+Path 3: sent 576 retrans 26 lost 26; rcv 271 rtt 31.895ms; loss rate: 0.045139
+Congestion Window: 30660
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 9e403187ca1554ad
+Path 1: sent 1133 retrans 23 lost 21; rcv 581 rtt 22.161ms; loss rate: 0.018535
+Congestion Window: 24820
+Path 3: sent 576 retrans 26 lost 26; rcv 271 rtt 31.895ms; loss rate: 0.045139
+Congestion Window: 30660
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 9e403187ca1554ad
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1133 retrans 24 lost 22; rcv 581 rtt 22.161ms; loss rate: 0.019417
+Congestion Window: 2920
+Path 3: sent 577 retrans 26 lost 26; rcv 271 rtt 31.895ms; loss rate: 0.045061
+Congestion Window: 30660
+Info for stream 5 of 9e403187ca1554ad
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1134 retrans 24 lost 22; rcv 581 rtt 22.161ms; loss rate: 0.019400
+Congestion Window: 2920
+Path 3: sent 578 retrans 27 lost 26; rcv 271 rtt 31.895ms; loss rate: 0.044983
+Congestion Window: 30660
+Info for stream 5 of 9e403187ca1554ad
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.37ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1134 retrans 24 lost 22; rcv 581 rtt 22.161ms; loss rate: 0.019400
+Congestion Window: 2920
+Path 3: sent 579 retrans 28 lost 26; rcv 271 rtt 31.895ms; loss rate: 0.044905
+Congestion Window: 30660
+Closing connection bb7bb8758c258fe2
+Serving new connection: 1c28db8b053eb471, version 512 from 172.16.0.3:59577
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 1c28db8b053eb471
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.26ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 951 retrans 10 lost 10; rcv 476 rtt 22.354ms; loss rate: 0.010515
+Congestion Window: 20440
+Path 3: sent 730 retrans 25 lost 25; rcv 344 rtt 32.3ms; loss rate: 0.034247
+Congestion Window: 23360
+Closing connection 6edb66ffb2e9385f
+Serving new connection: 80e90f27e601065d, version 512 from 172.16.0.3:34209
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 80e90f27e601065d
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.658ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 920 retrans 16 lost 16; rcv 464 rtt 21.727ms; loss rate: 0.017391
+Congestion Window: 17520
+Path 3: sent 791 retrans 49 lost 49; rcv 361 rtt 31.972ms; loss rate: 0.061947
+Congestion Window: 23360
+Closing connection a6c21fb4d45b59ec
+Serving new connection: 5e100f01b632acd9, version 512 from 172.16.0.3:41311
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 5e100f01b632acd9
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.266ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 917 retrans 6 lost 6; rcv 454 rtt 21.324ms; loss rate: 0.006543
+Congestion Window: 37960
+Path 3: sent 815 retrans 87 lost 87; rcv 339 rtt 32.501ms; loss rate: 0.106748
+Congestion Window: 62780
+Closing connection c3c7fdd78c4b3cd4
+Serving new connection: 949d9d1f7000c634, version 512 from 172.16.0.3:46275
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1006 retrans 11 lost 11; rcv 529 rtt 21.694ms; loss rate: 0.010934
+Congestion Window: 23360
+Path 3: sent 680 retrans 23 lost 23; rcv 315 rtt 32.349ms; loss rate: 0.033824
+Congestion Window: 23360
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1007 retrans 12 lost 11; rcv 537 rtt 21.562ms; loss rate: 0.010924
+Congestion Window: 23360
+Path 3: sent 681 retrans 23 lost 23; rcv 323 rtt 32.664ms; loss rate: 0.033774
+Congestion Window: 23360
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1008 retrans 13 lost 11; rcv 537 rtt 21.562ms; loss rate: 0.010913
+Congestion Window: 23360
+Path 3: sent 681 retrans 23 lost 23; rcv 323 rtt 32.664ms; loss rate: 0.033774
+Congestion Window: 23360
+Closing connection 9ff1a54ea16f2002
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1008 retrans 14 lost 12; rcv 537 rtt 21.562ms; loss rate: 0.011905
+Congestion Window: 2920
+Path 3: sent 682 retrans 23 lost 23; rcv 323 rtt 32.664ms; loss rate: 0.033724
+Congestion Window: 23360
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1009 retrans 14 lost 12; rcv 537 rtt 21.562ms; loss rate: 0.011893
+Congestion Window: 2920
+Path 3: sent 683 retrans 24 lost 23; rcv 323 rtt 32.664ms; loss rate: 0.033675
+Congestion Window: 23360
+Info for stream 5 of 949d9d1f7000c634
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1009 retrans 14 lost 12; rcv 537 rtt 21.562ms; loss rate: 0.011893
+Congestion Window: 2920
+Path 3: sent 684 retrans 25 lost 23; rcv 323 rtt 32.664ms; loss rate: 0.033626
+Congestion Window: 23360
+Serving new connection: 26ca7e8133be0cc1, version 512 from 172.16.0.3:47549
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 26ca7e8133be0cc1
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 41.159ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 958 retrans 28 lost 28; rcv 459 rtt 22.657ms; loss rate: 0.029228
+Congestion Window: 33580
+Path 3: sent 794 retrans 66 lost 66; rcv 354 rtt 31.664ms; loss rate: 0.083123
+Congestion Window: 37960
+Closing connection 167b8157a44b76ae
+Serving new connection: 652998d2acebc6e0, version 512 from 172.16.0.3:49373
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 652998d2acebc6e0
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.457ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 882 retrans 13 lost 13; rcv 456 rtt 21.687ms; loss rate: 0.014739
+Congestion Window: 21900
+Path 3: sent 798 retrans 28 lost 28; rcv 373 rtt 31.926ms; loss rate: 0.035088
+Congestion Window: 40880
+Info for stream 5 of 652998d2acebc6e0
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.457ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 885 retrans 14 lost 13; rcv 466 rtt 21.591ms; loss rate: 0.014689
+Congestion Window: 21900
+Path 3: sent 799 retrans 28 lost 28; rcv 387 rtt 31.802ms; loss rate: 0.035044
+Congestion Window: 40880
+Info for stream 5 of 652998d2acebc6e0
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 39.457ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 888 retrans 18 lost 16; rcv 466 rtt 21.591ms; loss rate: 0.018018
+Congestion Window: 2920
+Path 3: sent 800 retrans 29 lost 28; rcv 387 rtt 31.802ms; loss rate: 0.035000
+Congestion Window: 40880
+Closing connection be1b523da109cbf0
+Serving new connection: 9583dce70b61aecb, version 512 from 172.16.0.3:50852
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 9583dce70b61aecb
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 44.551ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 864 retrans 21 lost 21; rcv 453 rtt 22.335ms; loss rate: 0.024306
+Congestion Window: 23360
+Path 3: sent 833 retrans 36 lost 36; rcv 383 rtt 31.795ms; loss rate: 0.043217
+Congestion Window: 20440
+Closing connection a9ad95027262500f
+Serving new connection: 40acff035f6fed58, version 512 from 172.16.0.3:59619
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 40acff035f6fed58
+Path 3: sent 605 retrans 30 lost 30; rcv 275 rtt 31.978ms; loss rate: 0.049587
+Congestion Window: 36500
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.021ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1078 retrans 15 lost 15; rcv 559 rtt 21.843ms; loss rate: 0.013915
+Congestion Window: 35040
+Closing connection b722b559eb2eb0fb
+Serving new connection: 2c9b522590becca0, version 512 from 172.16.0.3:41758
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 2c9b522590becca0
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 38.382ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1075 retrans 10 lost 10; rcv 501 rtt 22.145ms; loss rate: 0.009302
+Congestion Window: 32120
+Path 3: sent 618 retrans 30 lost 30; rcv 301 rtt 31.598ms; loss rate: 0.048544
+Congestion Window: 33580
+Closing connection af4377884e129bba
+Serving new connection: 1f96def49b1f7fcc, version 512 from 172.16.0.3:53678
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 1f96def49b1f7fcc
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.648ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 887 retrans 12 lost 12; rcv 418 rtt 22.81ms; loss rate: 0.013529
+Congestion Window: 33580
+Path 3: sent 792 retrans 28 lost 28; rcv 377 rtt 31.408ms; loss rate: 0.035354
+Congestion Window: 45260
+Serving new connection: 7482f6d4fbd0a5e, version 512 from 172.16.0.3:52707
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection a7be9e34293f6437
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 3: sent 946 retrans 24 lost 24; rcv 479 rtt 31.905ms; loss rate: 0.025370
+Congestion Window: 40880
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 746 retrans 20 lost 20; rcv 367 rtt 21.748ms; loss rate: 0.026810
+Congestion Window: 29200
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 747 retrans 20 lost 20; rcv 378 rtt 21.671ms; loss rate: 0.026774
+Congestion Window: 29200
+Path 3: sent 949 retrans 25 lost 24; rcv 499 rtt 31.763ms; loss rate: 0.025290
+Congestion Window: 40880
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 748 retrans 21 lost 20; rcv 378 rtt 21.671ms; loss rate: 0.026738
+Congestion Window: 29200
+Path 3: sent 949 retrans 25 lost 24; rcv 499 rtt 31.763ms; loss rate: 0.025290
+Congestion Window: 40880
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 749 retrans 22 lost 20; rcv 378 rtt 21.671ms; loss rate: 0.026702
+Congestion Window: 29200
+Path 3: sent 949 retrans 25 lost 24; rcv 499 rtt 31.763ms; loss rate: 0.025290
+Congestion Window: 40880
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 749 retrans 23 lost 21; rcv 378 rtt 21.671ms; loss rate: 0.028037
+Congestion Window: 2920
+Path 3: sent 950 retrans 25 lost 24; rcv 499 rtt 31.763ms; loss rate: 0.025263
+Congestion Window: 40880
+Info for stream 5 of 7482f6d4fbd0a5e
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.235ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 750 retrans 23 lost 21; rcv 378 rtt 21.671ms; loss rate: 0.028000
+Congestion Window: 2920
+Path 3: sent 951 retrans 26 lost 24; rcv 499 rtt 31.763ms; loss rate: 0.025237
+Congestion Window: 40880
+Serving new connection: 93019f5ded853461, version 512 from 172.16.0.3:58343
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection bcab5fe6c1e3e46f
+Info for stream 5 of 93019f5ded853461
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 71.891ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1543 retrans 157 lost 157; rcv 606 rtt 68.812ms; loss rate: 0.101750
+Congestion Window: 249660
+Path 3: sent 329 retrans 52 lost 52; rcv 116 rtt 34.084ms; loss rate: 0.158055
+Congestion Window: 29200
+Serving new connection: 751d02e8762ac65b, version 512 from 172.16.0.3:39039
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 15411502ce5f627
+Info for stream 5 of 751d02e8762ac65b
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 40.745ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 993 retrans 16 lost 16; rcv 498 rtt 23.418ms; loss rate: 0.016113
+Congestion Window: 42340
+Path 3: sent 687 retrans 23 lost 23; rcv 305 rtt 31.574ms; loss rate: 0.033479
+Congestion Window: 39420
+Serving new connection: 64b031dffae44024, version 512 from 172.16.0.3:39488
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 58694a8528fac9b3
+Info for stream 5 of 64b031dffae44024
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 45.766ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 933 retrans 20 lost 20; rcv 472 rtt 22.013ms; loss rate: 0.021436
+Congestion Window: 27740
+Path 3: sent 768 retrans 44 lost 44; rcv 336 rtt 31.923ms; loss rate: 0.057292
+Congestion Window: 35040
+Serving new connection: 677d000da74cb30c, version 512 from 172.16.0.3:37016
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 9e403187ca1554ad
+Info for stream 5 of 677d000da74cb30c
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 928 retrans 18 lost 18; rcv 494 rtt 21.732ms; loss rate: 0.019397
+Congestion Window: 26280
+Path 3: sent 751 retrans 19 lost 19; rcv 351 rtt 31.895ms; loss rate: 0.025300
+Congestion Window: 32120
+Info for stream 5 of 677d000da74cb30c
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 931 retrans 18 lost 18; rcv 509 rtt 21.848ms; loss rate: 0.019334
+Congestion Window: 26280
+Path 3: sent 751 retrans 20 lost 19; rcv 362 rtt 32.095ms; loss rate: 0.025300
+Congestion Window: 32120
+Info for stream 5 of 677d000da74cb30c
+Path 3: sent 751 retrans 20 lost 19; rcv 362 rtt 32.095ms; loss rate: 0.025300
+Congestion Window: 32120
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 932 retrans 19 lost 18; rcv 509 rtt 21.848ms; loss rate: 0.019313
+Congestion Window: 26280
+Info for stream 5 of 677d000da74cb30c
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 933 retrans 20 lost 18; rcv 509 rtt 21.848ms; loss rate: 0.019293
+Congestion Window: 26280
+Path 3: sent 751 retrans 20 lost 19; rcv 362 rtt 32.095ms; loss rate: 0.025300
+Congestion Window: 32120
+Info for stream 5 of 677d000da74cb30c
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 933 retrans 21 lost 19; rcv 509 rtt 21.848ms; loss rate: 0.020364
+Congestion Window: 2920
+Path 3: sent 752 retrans 20 lost 19; rcv 362 rtt 32.095ms; loss rate: 0.025266
+Congestion Window: 32120
+Info for stream 5 of 677d000da74cb30c
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.622ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 934 retrans 21 lost 19; rcv 509 rtt 21.848ms; loss rate: 0.020343
+Congestion Window: 2920
+Path 3: sent 753 retrans 21 lost 19; rcv 362 rtt 32.095ms; loss rate: 0.025232
+Congestion Window: 32120
+Serving new connection: 506c4231d678c1e7, version 512 from 172.16.0.3:38854
+MultiLen:  16
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Closing connection 1c28db8b053eb471
+Info for stream 5 of 506c4231d678c1e7
+Path 1: sent 979 retrans 17 lost 17; rcv 512 rtt 21.94ms; loss rate: 0.017365
+Congestion Window: 17520
+Path 3: sent 719 retrans 34 lost 34; rcv 334 rtt 31.989ms; loss rate: 0.047288
+Congestion Window: 20440
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of 506c4231d678c1e7
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 981 retrans 18 lost 17; rcv 520 rtt 22.002ms; loss rate: 0.017329
+Congestion Window: 17520
+Path 3: sent 720 retrans 34 lost 34; rcv 342 rtt 32.139ms; loss rate: 0.047222
+Congestion Window: 20440
+Info for stream 5 of 506c4231d678c1e7
+Path 3: sent 720 retrans 34 lost 34; rcv 342 rtt 32.139ms; loss rate: 0.047222
+Congestion Window: 20440
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 982 retrans 19 lost 17; rcv 520 rtt 22.002ms; loss rate: 0.017312
+Congestion Window: 17520
+Info for stream 5 of 506c4231d678c1e7
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 982 retrans 20 lost 18; rcv 520 rtt 22.002ms; loss rate: 0.018330
+Congestion Window: 2920
+Path 3: sent 721 retrans 34 lost 34; rcv 342 rtt 32.139ms; loss rate: 0.047157
+Congestion Window: 20440
+Info for stream 5 of 506c4231d678c1e7
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 983 retrans 20 lost 18; rcv 520 rtt 22.002ms; loss rate: 0.018311
+Congestion Window: 2920
+Path 3: sent 722 retrans 35 lost 34; rcv 342 rtt 32.139ms; loss rate: 0.047091
+Congestion Window: 20440
+Info for stream 5 of 506c4231d678c1e7
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 38.692ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 983 retrans 20 lost 18; rcv 520 rtt 22.002ms; loss rate: 0.018311
+Congestion Window: 2920
+Path 3: sent 723 retrans 36 lost 34; rcv 342 rtt 32.139ms; loss rate: 0.047026
+Congestion Window: 20440
+Serving new connection: 56808066b22aa31a, version 512 from 172.16.0.3:57838
+MultiLen:  16
+Closing connection 80e90f27e601065d
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 56808066b22aa31a
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.586ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 883 retrans 33 lost 33; rcv 448 rtt 21.403ms; loss rate: 0.037373
+Congestion Window: 11680
+Path 3: sent 815 retrans 18 lost 18; rcv 387 rtt 32.128ms; loss rate: 0.022086
+Congestion Window: 20440
+Closing connection 5e100f01b632acd9
+Serving new connection: da356a84a5434917, version 512 from 172.16.0.3:56262
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of da356a84a5434917
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 37.006ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1142 retrans 49 lost 49; rcv 551 rtt 21.499ms; loss rate: 0.042907
+Congestion Window: 33580
+Path 3: sent 629 retrans 62 lost 62; rcv 253 rtt 32.12ms; loss rate: 0.098569
+Congestion Window: 33580
+Closing connection 949d9d1f7000c634
+Serving new connection: f361d8553fd2d116, version 512 from 172.16.0.3:32989
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of f361d8553fd2d116
+Path 1: sent 925 retrans 24 lost 24; rcv 494 rtt 21.951ms; loss rate: 0.025946
+Congestion Window: 20440
+Path 3: sent 780 retrans 37 lost 37; rcv 370 rtt 32.387ms; loss rate: 0.047436
+Congestion Window: 24820
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 37.425ms; loss rate: 0.000000
+Congestion Window: 46720
+Info for stream 5 of f361d8553fd2d116
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 37.425ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 926 retrans 25 lost 24; rcv 502 rtt 22.259ms; loss rate: 0.025918
+Congestion Window: 20440
+Path 3: sent 780 retrans 37 lost 37; rcv 379 rtt 32.586ms; loss rate: 0.047436
+Congestion Window: 24820
+Closing connection 26ca7e8133be0cc1
+Info for stream 5 of f361d8553fd2d116
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 37.425ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 929 retrans 29 lost 27; rcv 502 rtt 22.259ms; loss rate: 0.029064
+Congestion Window: 2920
+Path 3: sent 781 retrans 38 lost 37; rcv 379 rtt 32.586ms; loss rate: 0.047375
+Congestion Window: 24820
+Serving new connection: 4ec875fc536d88e3, version 512 from 172.16.0.3:58529
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 4ec875fc536d88e3
+Path 1: sent 905 retrans 24 lost 24; rcv 415 rtt 21.778ms; loss rate: 0.026519
+Congestion Window: 39420
+Path 3: sent 818 retrans 56 lost 56; rcv 397 rtt 31.904ms; loss rate: 0.068460
+Congestion Window: 43800
+Path 0: sent 8 retrans 0 lost 0; rcv 7 rtt 40.21ms; loss rate: 0.000000
+Congestion Window: 46720
+Closing connection 652998d2acebc6e0
+Info for stream 5 of 4ec875fc536d88e3
+Path 0: sent 8 retrans 0 lost 0; rcv 7 rtt 40.21ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 910 retrans 29 lost 27; rcv 429 rtt 21.939ms; loss rate: 0.029670
+Congestion Window: 2920
+Path 3: sent 821 retrans 57 lost 56; rcv 414 rtt 32.203ms; loss rate: 0.068210
+Congestion Window: 43800
+Serving new connection: 320f2da199a9cfc2, version 512 from 172.16.0.3:50671
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 320f2da199a9cfc2
+Path 3: sent 739 retrans 48 lost 48; rcv 316 rtt 31.723ms; loss rate: 0.064953
+Congestion Window: 48180
+Path 0: sent 7 retrans 0 lost 0; rcv 8 rtt 38.511ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 987 retrans 41 lost 41; rcv 489 rtt 21.194ms; loss rate: 0.041540
+Congestion Window: 30660
+Closing connection 9583dce70b61aecb
+Serving new connection: e40d67d222e6c42a, version 512 from 172.16.0.3:35607
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of e40d67d222e6c42a
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 39.275ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 1182 retrans 22 lost 22; rcv 583 rtt 21.836ms; loss rate: 0.018613
+Congestion Window: 39420
+Path 3: sent 503 retrans 25 lost 25; rcv 222 rtt 31.413ms; loss rate: 0.049702
+Congestion Window: 32120
+Closing connection 40acff035f6fed58
+Serving new connection: 10db14ae01778ab4, version 512 from 172.16.0.3:54604
+MultiLen:  15
+GET 10.0.0.20:6121/files/demo2
+Responding with 200
+Info for stream 5 of 10db14ae01778ab4
+Path 0: sent 7 retrans 1 lost 0; rcv 6 rtt 44.068ms; loss rate: 0.000000
+Congestion Window: 46720
+Path 1: sent 787 retrans 13 lost 13; rcv 413 rtt 21.774ms; loss rate: 0.016518
+Congestion Window: 21900
+Path 3: sent 940 retrans 64 lost 64; rcv 414 rtt 31.995ms; loss rate: 0.068085
+Congestion Window: 20440
