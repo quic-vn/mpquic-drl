@@ -24,6 +24,7 @@ def set_model():
 
 @app.route('/flag_training', methods=['POST'])
 def flag_training():
+    print("TrANDA")
     try:
         current_env.agent.train(batch_size=64)
         return jsonify({'status': 'Training'}), 200
@@ -47,11 +48,11 @@ def get_action():
         # Convert state data to list
         state = [state_json['CWNDf'], state_json['INPf'], state_json['SRTTf'], 
                  state_json['CWNDs'], state_json['INPs'], state_json['SRTTs']]
-        print(f"Received state: {state}")
+        # print(f"Received state: {state}")
 
         # Get action probability from the SAC agent
         prob = current_env.agent.get_action_probability(state)
-        print(f"Action probability: {prob}")
+        # print(f"Action probability: {prob}")
 
         # Return the action probability as a response
         return jsonify({'probability': prob.tolist()}), 200

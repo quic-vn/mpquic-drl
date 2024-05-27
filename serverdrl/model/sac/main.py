@@ -20,7 +20,14 @@ class ReplayBuffer:
         self.buffer = deque(maxlen=capacity)
         self.experience = namedtuple('Experience', ['state', 'action', 'reward', 'next_state', 'done'])
 
+    def normalize(self, state):
+        state = np.array(state)
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        return state
+
     def add(self, state, action, reward, next_state, done):
+        state = self.normalize(state)  # Chuẩn hóa state
+        next_state = self.normalize(next_state)  # Chuẩn hóa next_state
         e = self.experience(state, action, reward, next_state, done)
         self.buffer.append(e)
 
@@ -60,12 +67,19 @@ class PolicyNetwork(nn.Module):
         self.linear1 = nn.Linear(state_dim, 256)
         self.linear2 = nn.Linear(256, 256)
         self.prob = nn.Linear(256, 1)
+        self.initialize_weights()
 
     def forward(self, state):
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
         prob = torch.sigmoid(self.prob(x))
+        #print(f"State: {state}, Prob: {prob}")
         return prob
+    
+    def initialize_weights(self):
+        nn.init.xavier_uniform_(self.linear1.weight)
+        nn.init.xavier_uniform_(self.linear2.weight)
+        nn.init.xavier_uniform_(self.prob.weight)
 
     def sample_action(self, state):
         prob = self.forward(state)
@@ -94,6 +108,10 @@ class SACAgent:
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=1e-4)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=1e-4)
 
+        self.discount = 0.99
+        self.tau = 0.005
+        self.alpha = 0.2
+
         self.replay_buffer = ReplayBuffer(capacity=1000000)
         self.critic1_loss_history = []
         self.critic2_loss_history = []
@@ -101,10 +119,11 @@ class SACAgent:
         self.rewards_history = []
         self.action_history = []  
 
-        self.discount = 0.99
-        self.tau = 0.005
-        self.alpha = 0.2
-
+    def preprocess_state(self, state):
+        state = np.array(state)
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        return state
+    
     def select_action(self, state):
         prob = self.actor.get_action_probability(state)
         action = 1 if prob > 0.5 else 0
@@ -112,9 +131,11 @@ class SACAgent:
         return action
 
     def get_action_probability(self, state):
+        state = self.preprocess_state(state)  # Chuẩn hóa trạng thái
         return self.actor.get_action_probability(state)
 
     def train(self, batch_size=64):
+        #print("TRAINNNNNNNNNNNNNNNNNNNN")
         if len(self.replay_buffer) < batch_size:
             return
 
@@ -182,13 +203,13 @@ class SACAgent:
         plt.subplot(1, 3, 1)
         plt.plot(self.critic1_loss_history, label='Critic 1 Loss')
         plt.plot(self.critic2_loss_history, label='Critic 2 Loss')
-        plt.xlabel('Training Steps')
+        plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
         plt.subplot(1, 3, 2)
         plt.plot(self.actor_loss_history, label='Actor Loss')
-        plt.xlabel('Training Steps')
+        plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
@@ -199,7 +220,7 @@ class SACAgent:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig('training_history.png') 
+        plt.savefig('logs/training_history.png') 
         plt.close()
 
 class Environment:

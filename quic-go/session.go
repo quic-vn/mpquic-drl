@@ -648,8 +648,10 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 		// Update the session RTT, which comes to take the max RTT on all paths
 		s.rttStats.UpdateSessionRTT(pth.rttStats.SmoothedRTT())
 	}
-
-	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "qsat" || s.scheduler.SchedulerName == "fuzzyqsat") {
+	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "qsat" {
+		s.scheduler.GetStateAndRewardQSAT(s, pth)
+	}
+	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "fuzzyqsat" {
 		s.scheduler.GetStateAndRewardQlearning(s, pth)
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "dqn" || s.scheduler.SchedulerName == "sac") {

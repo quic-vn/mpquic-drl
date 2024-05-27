@@ -20,7 +20,8 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/utils"
 )
 
-func sendTrainSignal() {
+func sendTrainSignal(wg *sync.WaitGroup) {
+	defer wg.Done()
 	data := map[string]interface{}{
 		"train_flag": true,
 	}
@@ -31,30 +32,18 @@ func sendTrainSignal() {
 		return
 	}
 
-	response, err := http.Post("http://10.0.0.20:8080/flag_training", "application/json", bytes.NewBuffer(jsonData))
+	_, err = http.Post("http://10.0.0.20:8080/flag_training", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("Error2:", err)
-		return
+		fmt.Println("Error sending POST request:", err)
 	}
-	defer response.Body.Close()
-
-	var datarp map[string]interface{}
-	err = json.NewDecoder(response.Body).Decode(&datarp)
-	if err != nil {
-		fmt.Println("Error3:", err)
-		return
-	}
-	fmt.Println("Message:", datarp["message"])
 }
 
 func main() {
-
 	verbose := flag.Bool("v", false, "verbose")
 	sleeptime := flag.Int("t", 0, "sleep time for request in second")
 	num := flag.Int("n", 1, "number of request")
 	multipath := flag.Bool("m", false, "multipath")
 	output := flag.String("o", "", "logging output")
-	// address := flag.String("a", "", "mac address")
 	cache := flag.Bool("c", false, "cache handshake information")
 	flag.Parse()
 	urls := flag.Args()
@@ -95,33 +84,35 @@ func main() {
 		for _, addr := range urls {
 			utils.Infof("GET %s", addr)
 			go func(addr string) {
+				defer wg.Done()
+
 				start := time.Now()
 				rsp, err := hclient.Get(addr)
 				if err != nil {
-					panic(err)
+					log.Println("Error getting response:", err)
+					return
 				}
+				defer rsp.Body.Close()
 
 				body := &bytes.Buffer{}
 				_, err = io.Copy(body, rsp.Body)
 				if err != nil {
-					//panic(err)
+					log.Println("Error copying response body:", err)
 					utils.Infof("%f", float64(30000))
 					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
-					wg.Done()
 				} else {
 					elapsed := time.Since(start)
 					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
 					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
 					csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-					// io.Copy(destination, body)
-					wg.Done()
 				}
-				// csvwriter.Flush()
-
 			}(addr)
 		}
 		wg.Wait()
 		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
-	sendTrainSignal()
+	// Thêm waitgroup cho sendTrainSignal
+	wg.Add(1)
+	go sendTrainSignal(&wg)
+	wg.Wait()
 }

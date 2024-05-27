@@ -14,7 +14,7 @@ sudo rm ./logs/*
 sudo rm ./output/result-wireless/*
 
 
-file_path="www/listwebsite.txt"
+file_path="www/listfile.txt"
 
 #initial: array stores web list
 declare -a webArr=("google.com")

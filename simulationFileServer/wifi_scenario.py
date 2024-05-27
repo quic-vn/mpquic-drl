@@ -19,50 +19,18 @@ from mn_wifi.wmediumdConnector import interference
 from mn_wifi.link import wmediumd
 from mn_wifi.node import Station
 
-SERVER_CMD = "./example"
+SERVER_CMD = "python ../serverdrl/server.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
 CERTPATH = "--certpath ./quic/quic_go_certs"
-SCH = "-ps %s"
-STH = "-ss %s"
+SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-
-client_cmd2 = "./clientMPQUIC -n 1 -m https://10.0.0.20:6121/files/demo2 > ./logs/client.logs 2>&1"
-#server_cmd2 = "./serverMPQUIC --certpath ./quic/quic_go_certs -scheduler rtt -bind :6121 -www ./www/ > ./logs/server.logs 2>&1"
-server_cmd2 = "python ../serverdrl/server.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC --certpath ./quic/quic_go_certs -scheduler qsat -bind :6121 -www ./www/ > ./logs/server.logs 2>&1"
-# server_cmd2 = "gunicorn --config /home/nii/go/src/github.com/lucas-clemente/serverdrl/gunicorn_config.py /home/nii/go/src/github.com/lucas-clemente/serverdrl/server:app > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC --certpath ./quic/quic_go_certs -scheduler dqn -bind :6121 -www ./www/ > ./logs/server.logs 2>&1"
-
-server_cmd3 = "python ../serverdrl/server.py"
-
-def get_file(directory_path):
-    file_list = []
-    for path, subdirs, files in os.walk(directory_path):
-        for name in files:
-            tmp = os.path.join(path, name)
-            tmp_t = tmp.replace(directory_path,"")
-            file_list.append(tmp_t)
-    return file_list
-
-def get_web(website):
-    cwd = os.getcwd()
-    directory_path = cwd + "/www/source/"+website
-    # print(directory_path)
-    files = get_file(directory_path)
-    for i in range(len(files)):
-        files[i] = "https://10.0.0.20:6121/source/"+website + files[i]
-
-    list_ds_w = ' '.join(files)
-    with open('list_w.txt', 'w') as f:
-        for line in files:
-            f.write(line)
-            f.write('\n')
-    # print(list_ds_w)
-
-CLIENT_CMD = "./client_benchmarker -m"
-CLIENT_SCH = "-ps %s"
-CLIENT_STH = "-ss %s"
-CLIENT_BRS = "-bs %s list_w.txt"
+CLIENT_CMD = "./clientMPQUIC -n 1 -m"
+CLIENT_FIL = "https://10.0.0.20:6121/files/%s"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
+
+# client_cmd2 = "./clientMPQUIC -n 1 -m https://10.0.0.20:6121/files/demo2 > ./logs/client.logs 2>&1"
+# server_cmd2 = "python ../serverdrl/server.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC --certpath ./quic/quic_go_certs -scheduler sac -bind :6121 -www ./www/ > ./logs/server.logs 2>&1"
 
 class LinuxRouter(Node):
     def config( self, **params ):
@@ -79,13 +47,12 @@ def runClient(station, id, client_cmd):
         # start = time.time()
         # t = (id+1)/10.0
        # print(client_cmd)
-        station.sendCmd(client_cmd2)
+        station.sendCmd(client_cmd)
 
         # Timeout of 20 seconds for detecting crashing tests
         output = station.monitor(timeoutms=30000)
         time.sleep(10)
         #station.cmd("curl -X POST http://10.0.0.20:8080/flag_training")
-        # time.sleep(10)
 
 
     
@@ -109,7 +76,7 @@ def configClient(sta, id):
     sta.cmd("ip route add default via 172.16.0.2 table 2")
 
 
-def topology(args, server_cmd, model, clt, client_cmd):
+def topology(args, server_cmd, client_cmd):
 
     net = Mininet_wifi(controller=Controller, link=wmediumd, wmediumd_mode=interference, fading_cof=3)
 
@@ -146,18 +113,10 @@ def topology(args, server_cmd, model, clt, client_cmd):
     net.addLink( ap2, r0, intfName2='r0-eth2', use_hfsc = True, params2={ 'ip' : '172.16.0.2/12' } )
     net.addLink( s1, r0, intfName2='r0-eth3', use_hfsc = True, params2={ 'ip' : '10.0.0.2/8' } )
 
-    # r0.cmd('./scripts/tc_r0.bash')
-    # ap1.cmd('./scripts/tc_ap1.bash')
-    # ap2.cmd('./scripts/tc_ap2.bash')
-    # r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 10ms --loss 1.0%')
-    # r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms --loss 1.0%')
-    # ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 10ms --loss 1.0%')
-    # ap2.cmd('tcset ap2-eth2 --rate 50Mbps --delay 15ms --loss 1.0%')
-
     # if '-p' not in args:
     #     net.plotGraph()
-    if (model != 'none'):
-        net.setMobilityModel(time=0, model=model, max_x=100, max_y=100, seed=20,
+    if (args.mdl != 'none'):
+        net.setMobilityModel(time=0, model=args.mdl, max_x=100, max_y=100, seed=20,
                             min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200.,
                             alpha=0.5, variance=4.)
     info("*** Starting network\n")
@@ -179,29 +138,26 @@ def topology(args, server_cmd, model, clt, client_cmd):
     ap2.start([c1])
     s1.start([c1])
 
-    # r0.cmd('./config/config_wifi/tc_r0.bash')
-    # ap1.cmd('./config/config_wifi/tc_ap1.bash')
-    # ap2.cmd('./config/config_wifi/tc_ap2.bash')
+    varrate = float(args.owd) * float(args.var) / 100
     r0.cmd('tcdel r0-eth1 --all')
-    r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 1.0%')
-    r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms --delay-distro 1.5 --delay-distribution pareto --loss 1.0%')
-    ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 1.0%')
-    ap2.cmd('tcset ap2-eth2 --rate 50Mbps --delay 15ms --delay-distro 1.5 --delay-distribution pareto --loss 1.0%')
+    r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+    r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+    ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+    ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
 
-    #CLI(net)
-    # h1.cmd('python ../serverdrl/server.py')
-    # time.sleep(5)
-    h1.sendCmd(server_cmd2)
-    # print(clt)
-    # print(server_cmd2)
+    print(args)
+    print(server_cmd)
+    print(client_cmd)
     # CLI(net)
+    h1.sendCmd(server_cmd)
     time.sleep(10)
-    if (int(clt) == 1):
+
+    if (int(args.clt) == 1):
         # print("check 1")
         t3 = threading.Thread(target=runClient, args=(sta3,3,client_cmd))
         t3.start()
         t3.join()
-    elif (int(clt) == 3):
+    elif (int(args.clt) == 3):
         # print("check 3")
         t3 = threading.Thread(target=runClient, args=(sta3,3))
         t4 = threading.Thread(target=runClient, args=(sta4,4))
@@ -214,7 +170,7 @@ def topology(args, server_cmd, model, clt, client_cmd):
         t3.join()
         t4.join()
         t5.join()
-    elif (int(clt) == 8):
+    elif (int(args.clt) == 8):
         # print("check 8")
         t3 = threading.Thread(target=runClient, args=(sta3,3))
         t4 = threading.Thread(target=runClient, args=(sta4,4))
@@ -249,8 +205,7 @@ def topology(args, server_cmd, model, clt, client_cmd):
     h1.monitor()
     h1.waiting = False
 
-    # info("*** Running CLI\n")
-    #h1.sendCmd("curl -X GET http://127.0.0.1:8080/plot_training_history")
+    #info("*** Running CLI\n")
     #CLI(net)
     
     info("*** Stopping network\n")
@@ -258,22 +213,27 @@ def topology(args, server_cmd, model, clt, client_cmd):
     time.sleep(1)
     # net.cleanup()
 
-def do_training(sch, stm, mdl, clt, brs):
-    server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % sch, STH % stm, ARGS, END])
-    client_cmd = " ".join([CLIENT_CMD, CLIENT_SCH % sch, CLIENT_STH % stm, CLIENT_BRS % brs, CLIENT_END])
+def do_training(args):
+    server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
+    client_cmd = " ".join([CLIENT_CMD, CLIENT_FIL % args.fil, CLIENT_END])
     setLogLevel('info')
-    topology(sys.argv, server_cmd, mdl, clt, client_cmd)
+    topology(args, server_cmd, client_cmd)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
-    parser.add_argument('--website', dest="web", help="Website dict", required=True)
-    parser.add_argument('--scheduler', dest="sch", help="Scheduler (LowLatency, ECF, SA-ECF)", required=True)
-    parser.add_argument('--stream', dest="stm", help="Stream scheduler (RR, WRR)", required=True)
     parser.add_argument('--model', dest="mdl", help="Mobility Model, or: none", required=True)
     parser.add_argument('--client', dest="clt", help="Client Number", required=True)
-    parser.add_argument('--browser', dest="brs", help="Browser Client (safari, firefox, chrome)", required=True)
+    parser.add_argument('--file', dest="fil", help="File (1MB, 2MB, 4MB)", required=True)
+
+    parser.add_argument('--bandwidth', dest="bwd", help="bandwidth", required=True)
+    parser.add_argument('--delay', dest="owd", help="delay", required=True)
+    parser.add_argument('--variation', dest="var", help="variation", required=True)
+    parser.add_argument('--loss', dest="los", help="loss", required=True)
+
+    parser.add_argument('--scheduler', dest="sch", help="Scheduler (rtt, qsat, sac)", required=True)
     args = parser.parse_args()
 
-    get_web(args.web)
-    do_training(args.sch, args.stm, args.mdl, args.clt, args.brs)
+    do_training(args)
+
+

@@ -1,8 +1,0 @@
-2024/05/08 09:23:47 GET https://10.0.0.20:6121/files/demo2
-2024/05/08 09:23:47 Starting new connection to 10.0.0.20 ([::]:35369 -> 10.0.0.20:6121), connectionID 77e34454d0801299, version 512
-2024/05/08 09:23:47 Queueing packet 0x7 for later decryption
-2024/05/08 09:23:47 Info for stream 5 of 77e34454d0801299
-2024/05/08 09:23:47 Path 0: sent 7 retrans 0 lost 0; rcv 9; loss rate: 0.000000
-2024/05/08 09:23:47 Path 1: sent 502 retrans 5 lost 4; rcv 922; loss rate: 0.007968
-2024/05/08 09:23:47 Path 3: sent 372 retrans 0 lost 0; rcv 728; loss rate: 0.000000
-2024/05/08 09:23:47 896.560964
