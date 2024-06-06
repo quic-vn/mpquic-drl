@@ -19,15 +19,15 @@ func roundFloat(val float64, precision uint) float64 {
 	return math.Round(val*ratio) / ratio
 }
 
-func NormalizeTimes(stat time.Duration) float32 {
-	return float32(stat.Nanoseconds()) / float32(time.Millisecond.Nanoseconds())
+func NormalizeTimes(stat time.Duration) float64 {
+	return float64(stat.Nanoseconds()) / float64(time.Millisecond.Nanoseconds())
 }
 
-func NormalizeGoodput(s *session, packetNumber uint64, retransNumber uint64) float32 {
+func NormalizeGoodput(s *session, packetNumber uint64, retransNumber uint64) float64 {
 	duration := time.Since(s.sessionCreationTime)
 
 	elapsedtime := NormalizeTimes(duration) / 1000
-	goodput := ((float32(packetNumber) - float32(retransNumber)) / 1024 / 1024 / elapsedtime) * float32(protocol.DefaultTCPMSS)
+	goodput := ((float64(packetNumber) - float64(retransNumber)) / 1024 / 1024 / elapsedtime) * float64(protocol.DefaultTCPMSS)
 
 	return goodput
 }
@@ -295,10 +295,10 @@ func (sch *scheduler) GetStateAndRewardMultiClients(s *session, pth *path) {
 	//update Q follow by state of action t
 	//Trang thai cu
 	var f_cLevel, s_cLevel, fr_cLevel, sr_cLevel, col int8
-	f_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_f
-	s_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_s
-	fr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_fr
-	sr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_sr
+	f_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_f
+	s_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_s
+	fr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_fr
+	sr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_sr
 	// f_cLevel = sch.currentState_f
 	// s_cLevel = sch.currentState_s
 	// fr_cLevel = sch.currentState_fr
@@ -407,10 +407,10 @@ func (sch *scheduler) GetStateAndRewardMultiClientsRetrans(s *session, pth *path
 
 	//update Q follow by state of action t
 
-	f_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_f
-	s_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_s
-	fr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_fr
-	sr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}].cState_sr
+	f_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_f
+	s_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_s
+	fr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_fr
+	sr_cLevel = sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}].cState_sr
 
 	if pth.pathID == firstPath {
 		col = 0
@@ -531,25 +531,26 @@ func (sch *scheduler) GetStateAndRewardDQN(s *session, pth *path) {
 
 	reWard[pth.pathID] = float64(goodput) - rttrate - lostrate
 	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
-	old_state := sch.list_State_DQN[State{pth.pathID, pth.lastRcvdPacketNumber, s.scheduler.current_Prob}]
+	old_state := sch.list_State_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
+	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
 	nextState := StateDQN{
-		CWNDf: float64(CWND[firstPath]),
-		INPf:  float64(INP[firstPath]),
-		SRTTf: float64(sRTT[firstPath]),
-		CWNDs: float64(CWND[secondPath]),
-		INPs:  float64(INP[secondPath]),
-		SRTTs: float64(sRTT[secondPath]),
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
 	}
 
 	rewardPayload := RewardPayload{
 		State:     old_state,
 		NextState: nextState,
-		Action:    sch.current_Prob,
+		Action:    old_action,
 		Reward:    reWard[pth.pathID],
 		Done:      false,
 	}
-
+	fmt.Println("PayLoad: ", rewardPayload)
 	err := updateReward(baseURL+"/update_reward", rewardPayload)
 	if err != nil {
 		fmt.Println("Error updating reward:", err)
@@ -618,8 +619,8 @@ func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 	}
 
 	//State
-	oldBSend := s.scheduler.QoldState[State{id: pth.pathID, pktnumber: rcvdpacketNumber, prob: 1}]
-	delete(s.scheduler.QoldState, State{id: pth.pathID, pktnumber: rcvdpacketNumber, prob: 1})
+	oldBSend := s.scheduler.QoldState[State{id: pth.pathID, pktnumber: rcvdpacketNumber}]
+	delete(s.scheduler.QoldState, State{id: pth.pathID, pktnumber: rcvdpacketNumber})
 
 	var BSend protocol.ByteCount
 	var BSend1 float32

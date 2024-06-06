@@ -658,7 +658,7 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 		s.scheduler.GetStateAndRewardDQN(s, pth)
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "multiclients" {
-		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, s.scheduler.current_Prob}]; ok {
+		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}]; ok {
 			if oldLost == newLost {
 				s.scheduler.GetStateAndRewardMultiClients(s, pth)
 			} else {

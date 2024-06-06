@@ -5,54 +5,62 @@
 sudo mn -c
 
 cd /home/"$(whoami)"/go/src/github.com/lucas-clemente/quic-go ; go build ; go install ./...
-cd /home/"$(whoami)"/go/src/github.com/lucas-clemente/simulation
+cd /home/"$(whoami)"/go/src/github.com/lucas-clemente/simulationFileServer
 pwd
 cp /home/"$(whoami)"/go/bin/example ./serverMPQUIC
 cp /home/"$(whoami)"/go/bin/client_benchmarker ./clientMPQUIC
 
 sudo rm ./logs/*
-sudo rm ./output/result-wireless/*
+# sudo rm ./output/result-wireless/*
 
-
-file_path="www/listfile.txt"
-
-#initial: array stores web list
-declare -a webArr=("google.com")
-
-#read file and store to arr
-# while IFS= read -r line || [ -n "$line" ]; do
-#     line=$(echo "$line" | sed 's/^https:\/\///')
-#     webArr+=("$line")
-# done < "$file_path"
-
-# #echo "Print arr store folder website:"
-# for web in "${webArr[@]}"; do
-#     echo "$web"
-# done
-
-declare -a schArr=("LowLatency")
-declare -a stmArr=("WRR")
-declare -a brsArr=("firefox")
 declare -a mdlArr=("none")
+declare -a numArr=("1")
+declare -a filArr=("1MB") 
+declare -a bgrArr=("0")
+declare -a frqArr=("0")
+declare -a bwdArr=("15") #bandwidth
+declare -a owdArr=("15") #one-way delay
+declare -a varArr=("10") #variation delay
+declare -a losArr=("0.5") #pkt loss 
+# declare -a schArr=("random" "rtt" "peek" "qsat" "sac")
+# declare -a schArr=("sac")
 
-for web in "${webArr[@]}"
-do
-    for sch in "${schArr[@]}"
-    do
-        for stm in "${stmArr[@]}"
-        do 
-            for brs in "${brsArr[@]}"
+for mdl in "${mdlArr[@]}"
+do 
+    for num in "${numArr[@]}"
+    do 
+        for fil in "${filArr[@]}"
+        do
+            for bgr in "${bgrArr[@]}"
             do 
-                for mdl in "${mdlArr[@]}"
+                for frq in "${frqArr[@]}"
                 do 
-                    echo "$sch-$stm-$brs-$mdl"
-                    sudo -E env "PATH=$PATH" python wifi_scenario.py --website ${web} --scheduler ${sch} --stream ${stm} --model ${mdl} --client 1 --browser ${brs}
-                    # sudo mv ./logs/server.logs ./output/result-wireless/${web}-server-${sch}-${stm}-${brs}-${mdl}.logs
-                    # sudo mv ./logs/client.logs ./output/result-wireless/${web}-client-${sch}-${stm}-${brs}-${mdl}.logs
-                    # sudo mv ./logs/data-time.csv ./output/result-wireless/${web}-time-${sch}-${stm}-${brs}-${mdl}.csv   
-                    # sudo mv ./logs/data-byte.csv ./output/result-wireless/${web}-byte-${sch}-${stm}-${brs}-${mdl}.csv   
-                    # sudo mv ./logs/server-detail.logs ./output/result-wireless/${web}-detail-${sch}-${stm}-${brs}-${mdl}.logs
-                    sleep 10
+                    for bwd in "${bwdArr[@]}"
+                    do 
+                        for owd in "${owdArr[@]}"
+                        do
+                            for var in "${varArr[@]}"
+                            do
+                                for los in "${losArr[@]}"
+                                do 
+                                    for sch in "${schArr[@]}"
+                                    do
+                                        echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
+                                        sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+                                        sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
+                                        sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
+                                        sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
+                                        sudo mv ./logs/result4.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result4.csv   
+                                        sudo mv ./logs/result5.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result5.csv   
+                                        sudo mv ./logs/server-flask.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-flask.logs  
+                                        sudo mv ./logs/training_history.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training.png 
+                                        sudo mn -c
+                                        sleep 10
+                                    done
+                                done
+                            done
+                        done
+                    done
                 done
             done
         done

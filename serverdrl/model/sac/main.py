@@ -104,11 +104,11 @@ class SACAgent:
         self.target_critic1.load_state_dict(self.critic1.state_dict())
         self.target_critic2.load_state_dict(self.critic2.state_dict())
 
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=1e-4)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=1e-4)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-6)
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=1e-6)
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=1e-6)
 
-        self.discount = 0.99
+        self.discount = 0.95
         self.tau = 0.005
         self.alpha = 0.2
 

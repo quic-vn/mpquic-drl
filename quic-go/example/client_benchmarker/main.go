@@ -42,13 +42,15 @@ func main() {
 	verbose := flag.Bool("v", false, "verbose")
 	sleeptime := flag.Int("t", 0, "sleep time for request in second")
 	num := flag.Int("n", 1, "number of request")
+	clt := flag.Int("clt", 1, "number of client")
 	multipath := flag.Bool("m", false, "multipath")
 	output := flag.String("o", "", "logging output")
 	cache := flag.Bool("c", false, "cache handshake information")
 	flag.Parse()
 	urls := flag.Args()
 
-	f, err := os.OpenFile("./logs/result.csv", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	filePath := "./logs/result" + fmt.Sprint(*clt) + ".csv"
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		panic(err)
 	}

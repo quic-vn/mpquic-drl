@@ -6,7 +6,7 @@
 import sys
 import time
 import argparse
-from threading import Thread
+from threading import Thread, Event
 import threading
 import os
 import random
@@ -25,37 +25,29 @@ SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC -n 1 -m"
+CLIENT_CMD = "./clientMPQUIC -n 1 -m -clt {id}"
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
-# client_cmd2 = "./clientMPQUIC -n 1 -m https://10.0.0.20:6121/files/demo2 > ./logs/client.logs 2>&1"
-# server_cmd2 = "python ../serverdrl/server.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC --certpath ./quic/quic_go_certs -scheduler sac -bind :6121 -www ./www/ > ./logs/server.logs 2>&1"
+with_background = 0  # Global variable to control the creation of background traffic
+stop_event = Event()  # Event to signal when to stop background traffic
 
 class LinuxRouter(Node):
-    def config( self, **params ):
-        super( LinuxRouter, self).config( **params )
-        self.cmd( 'sysctl net.ipv4.ip_forward=1' )
+    def config(self, **params):
+        super(LinuxRouter, self).config(**params)
+        self.cmd('sysctl net.ipv4.ip_forward=1')
 
-    def terminate( self ):
-        self.cmd( 'sysctl net.ipv4.ip_forward=0' )
-        super( LinuxRouter, self ).terminate()
+    def terminate(self):
+        self.cmd('sysctl net.ipv4.ip_forward=0')
+        super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(100):
-        # k = random.randint(0,2)
-        # start = time.time()
-        # t = (id+1)/10.0
-       # print(client_cmd)
-        station.sendCmd(client_cmd)
-
-        # Timeout of 20 seconds for detecting crashing tests
+    for i in range(50):
+        # print(client_cmd.format(id=id))
+        station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
         time.sleep(10)
-        #station.cmd("curl -X POST http://10.0.0.20:8080/flag_training")
 
-
-    
 def configClient(sta, id):
     sta.cmd("ifconfig sta{id}-wlan0 down".format(id=id))
     sta.cmd("ip link set sta{id}-wlan0 name wlan0".format(id=id))  
@@ -75,28 +67,30 @@ def configClient(sta, id):
     sta.cmd("ip route add default via 192.168.2.2 table 1")
     sta.cmd("ip route add default via 172.16.0.2 table 2")
 
+def background_traffic(client1, server1, frequency, stop_event):
+    # Wait a bit to ensure the network is fully started
+    # server1.cmd("iperf3 -s -p 5201")
+    #time.sleep(5)
+    while not stop_event.is_set():
+        # client1.cmd("iperf -c 192.168.5.4 -p 5201 -B 192.168.5.3 -V -t 9 > ./logs/bg.logs")
+        server1.cmd("ping -c 1 192.168.5.2")
+        client1.cmd("ping -c 1 192.168.5.2")
+        time.sleep(frequency)
 
 def topology(args, server_cmd, client_cmd):
-
     net = Mininet_wifi(controller=Controller, link=wmediumd, wmediumd_mode=interference, fading_cof=3)
 
     info("*** Creating nodes\n")
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
     s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
-    r0 = net.addHost( 'r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    #mode a,n,ac (channel 36,40), mode g (channel 1,5,6)
+    r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='45,50,0')
     ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='40', position='55,50,0')
 
-    sta3 = net.addStation('sta3', wlans=2, mac='00:00:00:00:01:03', position='50,70,0')
-
-    sta4 = net.addStation('sta4', wlans=2, mac='00:00:00:00:01:04', position='50,70,0')
-    sta5 = net.addStation('sta5', wlans=2, mac='00:00:00:00:01:05', position='50,70,0')
-    sta6 = net.addStation('sta6', wlans=2, mac='00:00:00:00:01:06', position='50,70,0')
-    sta7 = net.addStation('sta7', wlans=2, mac='00:00:00:00:01:07', position='50,70,0')
-    sta8 = net.addStation('sta8', wlans=2, mac='00:00:00:00:01:08', position='50,70,0')
-    sta9 = net.addStation('sta9', wlans=2, mac='00:00:00:00:01:0A', position='50,70,0')
-    sta10 = net.addStation('sta10', wlans=2, mac='00:00:00:00:01:0B', position='50,70,0')
+    stations = []
+    for i in range(3, 3 + int(args.clt)):
+        sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='50,70,0')
+        stations.append(sta)
 
     c1 = net.addController('c1')
 
@@ -107,133 +101,104 @@ def topology(args, server_cmd, client_cmd):
     net.configureWifiNodes()
 
     info("*** Associating and Creating links\n")
-    net.addLink( h1, s1, bw=300, use_hfsc = True)
+    net.addLink(h1, s1, bw=300, use_hfsc=True)
+    net.addLink(ap1, r0, intfName2='r0-eth1', use_hfsc=True, params2={'ip': '192.168.2.2/24'})
+    net.addLink(ap2, r0, intfName2='r0-eth2', use_hfsc=True, params2={'ip': '172.16.0.2/12'})
+    net.addLink(s1, r0, intfName2='r0-eth3', use_hfsc=True, params2={'ip': '10.0.0.2/8'})
 
-    net.addLink( ap1, r0, intfName2='r0-eth1', use_hfsc = True, params2={ 'ip' : '192.168.2.2/24' } )
-    net.addLink( ap2, r0, intfName2='r0-eth2', use_hfsc = True, params2={ 'ip' : '172.16.0.2/12' } )
-    net.addLink( s1, r0, intfName2='r0-eth3', use_hfsc = True, params2={ 'ip' : '10.0.0.2/8' } )
+    if with_background == 1:
+        server1 = net.addHost('server1', mac='01:00:00:00:00:01', ip='192.168.5.4/24', defaultRoute='192.168.5.2')
+        client1 = net.addHost('client1', mac='01:00:00:00:00:02', ip='192.168.5.3/24', defaultRoute='192.168.5.2')
+        net.addLink(server1, s1, bw=300, use_hfsc=True)
+        net.addLink(client1, r0, intfName2='r0-eth4', params2={'ip': '192.168.5.2/24'})
 
-    # if '-p' not in args:
-    #     net.plotGraph()
-    if (args.mdl != 'none'):
-        net.setMobilityModel(time=0, model=args.mdl, max_x=100, max_y=100, seed=20,
-                            min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200.,
-                            alpha=0.5, variance=4.)
+        client1.cmd("ip rule add from 192.168.5.3/24 table 1")
+        client1.cmd("ip route add default nexthop via 192.168.5.2 dev client-eth0 weight 1")
+        client1.cmd("ip route add default via 192.168.5.2 table 1")
+
+    if args.mdl != 'none':
+        net.setMobilityModel(time=0, model=args.mdl, max_x=100, max_y=100, seed=20, min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200., alpha=0.5, variance=4.)
+
     info("*** Starting network\n")
     net.build()
 
-    configClient(sta3, 3)
-    configClient(sta4, 4)
-    configClient(sta5, 5)
-    configClient(sta6, 6)
-    configClient(sta7, 7)
-    configClient(sta8, 8)
-    configClient(sta9, 9)
-    configClient(sta10, 10)
+    for i, sta in enumerate(stations, start=3):
+        configClient(sta, i)
 
     h1.cmd('ip route add default via 10.0.0.2')
-
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
     s1.start([c1])
 
-    varrate = float(args.owd) * float(args.var) / 100
-    r0.cmd('tcdel r0-eth1 --all')
-    r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-    r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
-    ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-    ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+    if with_background == 1:
+        r0.cmd('tcdel r0-eth1 --all')
+        r0.cmd('tcset r0-eth1 --rate 10Mbps')
+        r0.cmd('tcset r0-eth2 --rate {}Mbps'.format(args.bwd))
+        ap1.cmd('tcset ap1-eth2 --rate 10Mbps')
+        ap2.cmd('tcset ap2-eth2 --rate {}Mbps'.format(args.bwd))
 
+        # Start background traffic in a separate thread after network is fully up
+        bg_thread = threading.Thread(target=background_traffic, args=(client1, server1, float(args.freq), stop_event))
+        bg_thread.daemon = True
+        bg_thread.start()
+    else:
+        varrate = float(args.owd) * float(args.var) / 100
+        r0.cmd('tcdel r0-eth1 --all')
+        r0.cmd('tcset r0-eth1 --rate 10Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+        r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+        ap1.cmd('tcset ap1-eth2 --rate 10Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+        ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+   
     print(args)
     print(server_cmd)
     print(client_cmd)
-    # CLI(net)
     h1.sendCmd(server_cmd)
     time.sleep(10)
 
-    if (int(args.clt) == 1):
-        # print("check 1")
-        t3 = threading.Thread(target=runClient, args=(sta3,3,client_cmd))
-        t3.start()
-        t3.join()
-    elif (int(args.clt) == 3):
-        # print("check 3")
-        t3 = threading.Thread(target=runClient, args=(sta3,3))
-        t4 = threading.Thread(target=runClient, args=(sta4,4))
-        t5 = threading.Thread(target=runClient, args=(sta5,5))
+    threads = []
+    for i, sta in enumerate(stations, start=3):
+        t = threading.Thread(target=runClient, args=(sta, i, client_cmd))
+        threads.append(t)
+        t.start()
 
-        t3.start()
-        t4.start()
-        t5.start()
+    for t in threads:
+        t.join()
 
-        t3.join()
-        t4.join()
-        t5.join()
-    elif (int(args.clt) == 8):
-        # print("check 8")
-        t3 = threading.Thread(target=runClient, args=(sta3,3))
-        t4 = threading.Thread(target=runClient, args=(sta4,4))
-        t5 = threading.Thread(target=runClient, args=(sta5,5))
-        t6 = threading.Thread(target=runClient, args=(sta6,6))
-        t7 = threading.Thread(target=runClient, args=(sta7,7))
-        t8 = threading.Thread(target=runClient, args=(sta8,8))
-        t9 = threading.Thread(target=runClient, args=(sta9,9))
-        t10 = threading.Thread(target=runClient, args=(sta10,10))
-
-        t3.start()
-        t4.start()
-        t5.start()
-        t6.start()
-        t7.start()
-        t8.start()
-        t9.start()
-        t10.start()
-
-        t3.join()
-        t4.join()
-        t5.join()
-        t6.join()
-        t7.join()
-        t8.join()
-        t9.join()
-        t10.join()
-        
-    # Check for timeouts
     h1.sendInt()
-
     h1.monitor()
     h1.waiting = False
 
-    #info("*** Running CLI\n")
-    #CLI(net)
-    
+    # Signal the background traffic thread to stop and wait for it to finish
+    stop_event.set()
+    if with_background == 1:
+        bg_thread.join()
+    # CLI(net)
+
     info("*** Stopping network\n")
     net.stop()
     time.sleep(1)
-    # net.cleanup()
 
 def do_training(args):
+    global with_background
     server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
     client_cmd = " ".join([CLIENT_CMD, CLIENT_FIL % args.fil, CLIENT_END])
     setLogLevel('info')
+    with_background = int(args.bg)  # Set the global variable based on the command-line argument
     topology(args, server_cmd, client_cmd)
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
     parser.add_argument('--model', dest="mdl", help="Mobility Model, or: none", required=True)
     parser.add_argument('--client', dest="clt", help="Client Number", required=True)
     parser.add_argument('--file', dest="fil", help="File (1MB, 2MB, 4MB)", required=True)
-
     parser.add_argument('--bandwidth', dest="bwd", help="bandwidth", required=True)
     parser.add_argument('--delay', dest="owd", help="delay", required=True)
     parser.add_argument('--variation', dest="var", help="variation", required=True)
     parser.add_argument('--loss', dest="los", help="loss", required=True)
-
     parser.add_argument('--scheduler', dest="sch", help="Scheduler (rtt, qsat, sac)", required=True)
+    parser.add_argument('--background', dest="bg", help="Enable background traffic (1 or 0)", required=False, default=0)
+    parser.add_argument('--frequency', dest="freq", help="Frequency of background traffic (seconds)", required=False, default=1)
     args = parser.parse_args()
 
     do_training(args)
-
-

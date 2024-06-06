@@ -63,7 +63,6 @@ type StatusResponse struct {
 type State struct {
 	id        protocol.PathID
 	pktnumber protocol.PacketNumber
-	prob      float64
 }
 
 type Store struct {
@@ -146,6 +145,7 @@ type scheduler struct {
 
 	//DQN
 	list_State_DQN    map[State]StateDQN
+	list_Action_DQN   map[State]float64
 	current_State_DQN StateDQN
 	current_Prob      float64
 }
@@ -270,8 +270,9 @@ func (sch *scheduler) setup() {
 		setModel(modelType)
 	} else if sch.SchedulerName == "sac" {
 		sch.list_State_DQN = make(map[State]StateDQN)
-		modelType := map[string]string{"model_type": "sac"}
-		setModel(modelType)
+		sch.list_Action_DQN = make(map[State]float64)
+		// modelType := map[string]string{"model_type": "sac"}
+		// setModel(modelType)
 	}
 
 }
@@ -296,7 +297,7 @@ func (sch *scheduler) getRetransmission(s *session) (hasRetransmission bool, ret
 		}
 		hasRetransmission = true
 		if sch.SchedulerName == "multiclients" {
-			if _, ok := sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber, sch.current_Prob}]; ok {
+			if _, ok := sch.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}]; ok {
 				sch.GetStateAndRewardMultiClientsRetrans(s, pth)
 			}
 		}
@@ -1950,14 +1951,15 @@ func (sch *scheduler) sendPacket(s *session) error {
 		}
 
 		if sch.SchedulerName == "sac" && pth.pathID > 0 && pkt.PacketNumber > 0 {
-			sch.list_State_DQN[State{pth.pathID, pkt.PacketNumber, sch.current_Prob}] = sch.current_State_DQN
+			sch.list_State_DQN[State{pth.pathID, pkt.PacketNumber}] = sch.current_State_DQN
+			sch.list_Action_DQN[State{pth.pathID, pkt.PacketNumber}] = sch.current_Prob
 			//fmt.Println(sch.current_Prob)
 		}
 
 		if sch.SchedulerName == "qsat" && pth.pathID > 0 && pkt.PacketNumber > 0 {
 			BSend, _ := s.flowControlManager.SendWindowSize(protocol.StreamID(5))
 			BSend1 := float32(BSend) / float32(protocol.DefaultMaxCongestionWindow) / 300
-			sch.QoldState[State{id: pth.pathID, pktnumber: pkt.PacketNumber, prob: 1}] = float64(BSend1)
+			sch.QoldState[State{id: pth.pathID, pktnumber: pkt.PacketNumber}] = float64(BSend1)
 		}
 
 		// Duplicate traffic when it was sent on an unknown performing path
@@ -2055,12 +2057,12 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 	}
 
 	stateData := StateDQN{
-		CWNDf: float64(CWND[firstPath]),
-		INPf:  float64(INP[firstPath]),
-		SRTTf: float64(sRTT[firstPath]),
-		CWNDs: float64(CWND[secondPath]),
-		INPs:  float64(INP[secondPath]),
-		SRTTs: float64(sRTT[secondPath]),
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
 	}
 
 	// action := 0
