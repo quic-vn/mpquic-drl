@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"os"
@@ -143,33 +144,12 @@ type scheduler struct {
 	// DumpPath  string
 	// dumpAgent experienceAgent
 
-	//DQN
-	list_State_DQN    map[State]StateDQN
-	list_Action_DQN   map[State]float64
+	//new SAC
+	replayBuffer      []Experience
 	current_State_DQN StateDQN
 	current_Prob      float64
-}
-
-func setModel(data map[string]string) {
-	url := "http://localhost:8080/set_model"
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return
-	}
-
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		fmt.Println("Error making POST request:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		fmt.Println("Model set to SAC successfully")
-	} else {
-		fmt.Println("Failed to set model:", resp.Status)
-	}
+	list_State_SAC    map[State]StateDQN
+	list_Action_SAC   map[State]int
 }
 
 func (sch *scheduler) setup() {
@@ -218,14 +198,6 @@ func (sch *scheduler) setup() {
 			panic(err)
 		}
 
-		// sch.state[0] = 0.05
-		// sch.state[1] = 0.10
-		// sch.state[2] = 0.15
-		// sch.state[3] = 0.20
-		// sch.state[4] = 0.30
-		// sch.state[5] = 0.40
-		// sch.state[6] = 0.60
-
 		sch.clv_state[0] = 0.3
 		sch.clv_state[1] = 0.5
 		sch.clv_state[2] = 0.7
@@ -246,33 +218,28 @@ func (sch *scheduler) setup() {
 		sch.Gamma = config[3]
 		sch.Epsilon = config[4]
 		sch.AdaDivisor = config[5]
-		// fmt.Println(sch.Alpha)
-		// fmt.Println(sch.Beta)
-		// fmt.Println(sch.Delta)
-		// fmt.Println(sch.Gamma)
-		// fmt.Println(sch.Epsilon)
-
 		sch.countSelectPath = 0
 
 		f.Close()
 		sch.record = 1
-		// b, err := ioutil.ReadFile("/App/config/qsat")
-		// if err != nil {
-		// 	panic(err)
-		// }
-		// json.Unmarshal(b, &sch.qtable)
-		// fmt.Println(sch.qtable)
 	}
 
-	if sch.SchedulerName == "dqn" {
-		sch.list_State_DQN = make(map[State]StateDQN)
-		modelType := map[string]string{"model_type": "dqn"}
-		setModel(modelType)
-	} else if sch.SchedulerName == "sac" {
-		sch.list_State_DQN = make(map[State]StateDQN)
-		sch.list_Action_DQN = make(map[State]float64)
-		// modelType := map[string]string{"model_type": "sac"}
-		// setModel(modelType)
+	if sch.SchedulerName == "sac" {
+		// sch.replayBuffer = make([]Experience, 1000000)
+		sch.list_State_SAC = make(map[State]StateDQN)
+		sch.list_Action_SAC = make(map[State]int)
+
+		// Step 1: Set the model
+		setModelRequest := SetModelRequest{
+			StateDim:     stateDim,
+			ActionDim:    actionDim,
+			MaxAction:    maxAction,
+			ConnectionID: ModelID,
+		}
+
+		if err := sendRequest("/set_model", setModelRequest); err != nil {
+			log.Fatalf("Failed to set model: %v", err)
+		}
 	}
 
 }
@@ -1951,8 +1918,9 @@ func (sch *scheduler) sendPacket(s *session) error {
 		}
 
 		if sch.SchedulerName == "sac" && pth.pathID > 0 && pkt.PacketNumber > 0 {
-			sch.list_State_DQN[State{pth.pathID, pkt.PacketNumber}] = sch.current_State_DQN
-			sch.list_Action_DQN[State{pth.pathID, pkt.PacketNumber}] = sch.current_Prob
+			sch.list_State_SAC[State{pth.pathID, pkt.PacketNumber}] = sch.current_State_DQN
+			sch.list_Action_SAC[State{pth.pathID, pkt.PacketNumber}] = int(pth.pathID)
+			// sch.current_Prob =
 			//fmt.Println(sch.current_Prob)
 		}
 
@@ -2027,6 +1995,10 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 		}
 	}
 
+	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
+		return s.paths[protocol.InitialPathID]
+	}
+
 	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
 	sRTT := make(map[protocol.PathID]time.Duration)
 	lRTT := make(map[protocol.PathID]time.Duration)
@@ -2065,106 +2037,30 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
 	}
 
-	// action := 0
-	// action2 := 1
-	// if sch.current_Prob == 0 {
-	// 	prob, err := getAction(baseURL+"/get_action", stateData)
-	// 	if err != nil {
-	// 		fmt.Println("Error getting action:", err)
-	// 		return nil
-	// 	}
-	// 	sch.current_Prob = prob
-	// } else {
-	// 	if sch.current_Prob < rand.Float64() {
-	// 		action = 1
-	// 		action2 = 0
-	// 	}
+	state := make([]float64, stateDim)
+	state[0] = stateData.CWNDf
+	state[1] = stateData.INPf
+	state[2] = stateData.SRTTf
+	state[3] = stateData.CWNDs
+	state[4] = stateData.INPs
+	state[5] = stateData.SRTTs
 
-	// 	if s.paths[availablePaths[action]].SendingAllowed() {
-	// 		sch.current_State_DQN = stateData
-	// 		return s.paths[availablePaths[action]]
-	// 	}
-	// }
-	// // Get action from SAC model
-	// prob, err := getAction(baseURL+"/get_action", stateData)
-	// if err != nil {
-	// 	fmt.Println("Error getting action:", err)
-	// 	return nil
-	// }
-
-	// if prob < rand.Float64() {
-	// 	action = 1
-	// 	action2 = 0
-	// }
-	// //fmt.Printf("Action: %v\n", action)
-
-	// if s.paths[availablePaths[action]].SendingAllowed() {
-	// 	sch.current_State_DQN = stateData
-	// 	return s.paths[availablePaths[action]]
-	// }
-
-	// Tạo một nguồn ngẫu nhiên mới với hạt giống hiện tại
-	src := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(src)
-
-	action := 0
-	if sch.current_Prob == 0 {
-		sch.getActionAsync(baseURL+"/get_action", stateData)
-	} else {
-		if sch.current_Prob > r.Float64() {
-			action = 1
-		}
-		if s.paths[availablePaths[action]].SendingAllowed() {
-			sch.current_State_DQN = stateData
-			return s.paths[availablePaths[action]]
-		}
+	actionProbs, err := selectAction(state, ModelID)
+	if err != nil {
+		log.Fatalf("Failed to select action: %v", err)
 	}
-
-	sch.getActionAsync(baseURL+"/get_action", stateData)
-	if sch.current_Prob > r.Float64() {
-		action = 1
-	}
-	//fmt.Println("Action: ", action, "Prob: ", sch.current_Prob)
-
-	if s.paths[availablePaths[action]].SendingAllowed() {
-		sch.current_State_DQN = stateData
-		return s.paths[availablePaths[action]]
-	}
-
-	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
-		return s.paths[protocol.InitialPathID]
+	// Choose an action based on probabilities
+	action := chooseAction(actionProbs)
+	fmt.Println(actionProbs, action)
+	if action == 1 {
+		return s.paths[1]
+	} else if action == 2 {
+		return s.paths[3]
 	} else {
 		return nil
 	}
 
 }
-
-// func getAction(url string, state StateDQN) (float64, error) {
-// 	jsonPayload, err := json.Marshal(map[string]interface{}{
-// 		"state": state,
-// 	})
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
-// 	if err != nil {
-// 		return 0, err
-// 	}
-// 	defer resp.Body.Close()
-
-// 	var response ActionProbabilityResponse
-// 	err = json.NewDecoder(resp.Body).Decode(&response)
-// 	if err != nil {
-// 		return 0, err
-// 	}
-
-// 	if response.Error != "" {
-// 		return 0, fmt.Errorf(response.Error)
-// 	}
-
-// 	return response.Probability[0], nil
-// }
 
 func (sch *scheduler) getActionAsync(url string, state StateDQN) {
 	go func() {

@@ -211,12 +211,6 @@ func (s *session) setup(
 		s.config.IdleTimeout,
 	)
 
-	s.scheduler = &scheduler{SchedulerName: s.config.SchedulerName,
-		Training:          s.config.Training,
-		AllowedCongestion: s.config.AllowedCongestion,
-		DumpExp:           s.config.DumpExperiences}
-	s.scheduler.setup()
-
 	if pconnMgr == nil && conn != nil {
 		// XXX ONLY VALID FOR BENCHMARK!
 		s.paths[protocol.InitialPathID] = &path{
@@ -304,6 +298,15 @@ func (s *session) setup(
 		s.version,
 	)
 	s.unpacker = &packetUnpacker{aead: s.cryptoSetup, version: s.version}
+
+	ModelID = uint64(s.connectionID)
+	fmt.Println("Checck: ", ModelID)
+
+	s.scheduler = &scheduler{SchedulerName: s.config.SchedulerName,
+		Training:          s.config.Training,
+		AllowedCongestion: s.config.AllowedCongestion,
+		DumpExp:           s.config.DumpExperiences}
+	s.scheduler.setup()
 
 	return s, handshakeChan, nil
 }
@@ -654,8 +657,8 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "fuzzyqsat" {
 		s.scheduler.GetStateAndRewardQlearning(s, pth)
 	}
-	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "dqn" || s.scheduler.SchedulerName == "sac") {
-		s.scheduler.GetStateAndRewardDQN(s, pth)
+	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sac" {
+		s.scheduler.GetStateAndRewardSAC(s, pth)
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "multiclients" {
 		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}]; ok {

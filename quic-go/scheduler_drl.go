@@ -1,41 +1,41 @@
-package main
+package quic
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
-	"time"
 )
 
+var ModelID uint64 = 0
+
+// SACmodel's config - start
 const (
-	serverURL    = "http://127.0.0.1:5000"
-	connectionID = "test_connection_1"
-	stateDim     = 6
-	actionDim    = 3
-	maxAction    = 1.0
-	bufferSize   = 64
+	serverURL  = "http://127.0.0.1:5000"
+	stateDim   = 6
+	actionDim  = 3
+	maxAction  = 1.0
+	bufferSize = 64
 )
 
 type SetModelRequest struct {
 	StateDim     int     `json:"state_dim"`
 	ActionDim    int     `json:"action_dim"`
 	MaxAction    float64 `json:"max_action"`
-	ConnectionID string  `json:"connection_id"`
+	ConnectionID uint64  `json:"connection_id"`
 }
 
 type SelectActionRequest struct {
 	State        []float64 `json:"state"`
-	ConnectionID string    `json:"connection_id"`
+	ConnectionID uint64    `json:"connection_id"`
 }
 
 type TrainModelRequest struct {
 	ReplayBuffer string `json:"replay_buffer"`
 	Iterations   int    `json:"iterations"`
-	ConnectionID string `json:"connection_id"`
+	ConnectionID uint64 `json:"connection_id"`
 }
 
 type SelectActionResponse struct {
@@ -50,71 +50,7 @@ type Experience struct {
 	Done      bool      `json:"done"`
 }
 
-func main() {
-	rand.Seed(time.Now().UnixNano())
-
-	// Step 1: Set the model
-	setModelRequest := SetModelRequest{
-		StateDim:     stateDim,
-		ActionDim:    actionDim,
-		MaxAction:    maxAction,
-		ConnectionID: connectionID,
-	}
-
-	if err := sendRequest("/set_model", setModelRequest); err != nil {
-		log.Fatalf("Failed to set model: %v", err)
-	}
-
-	// Step 2: Simulate 100 action selections
-	var replayBuffer []Experience
-	for i := 0; i < 500; i++ {
-		state := generateRandomState(stateDim)
-		actionProbs, err := selectAction(state, connectionID)
-		if err != nil {
-			log.Fatalf("Failed to select action: %v", err)
-		}
-
-		// Ensure action probabilities sum to 1
-		sumProbs := 0.0
-		for _, prob := range actionProbs {
-			sumProbs += prob
-		}
-		if sumProbs < 0.99 || sumProbs > 1.01 {
-			log.Fatalf("Action probabilities do not sum to 1: %v", actionProbs)
-		}
-
-		// Choose an action based on probabilities
-		action := chooseAction(actionProbs)
-
-		fmt.Println(actionProbs, action)
-
-		// Simulate environment response
-		reward, nextState, done := simulateEnvironment(state, action)
-
-		// Store experience in replay buffer
-		experience := Experience{
-			State:     state,
-			Action:    action,
-			Reward:    reward,
-			NextState: nextState,
-			Done:      done,
-		}
-		replayBuffer = append(replayBuffer, experience)
-
-		// Train model when buffer size reaches 64
-		if len(replayBuffer) >= bufferSize {
-			if err := trainModel(replayBuffer, 10, connectionID); err != nil {
-				log.Fatalf("Failed to train model: %v", err)
-			}
-			replayBuffer = replayBuffer[:0] // Clear buffer
-		}
-	}
-
-	// Step 3: Plot training history
-	if err := plotTrainingHistory(connectionID); err != nil {
-		log.Fatalf("Failed to plot training history: %v", err)
-	}
-}
+//SACmodel's config - end
 
 func sendRequest(endpoint string, data interface{}) error {
 	url := serverURL + endpoint
@@ -143,7 +79,7 @@ func sendRequest(endpoint string, data interface{}) error {
 	return nil
 }
 
-func selectAction(state []float64, connectionID string) ([]float64, error) {
+func selectAction(state []float64, connectionID uint64) ([]float64, error) {
 	selectActionRequest := SelectActionRequest{
 		State:        state,
 		ConnectionID: connectionID,
@@ -174,18 +110,18 @@ func selectAction(state []float64, connectionID string) ([]float64, error) {
 	return selectActionResponse.ActionProbs, nil
 }
 
-func trainModel(replayBuffer []Experience, iterations int, connectionID string) error {
+func trainModel(replayBuffer []Experience, iterations int, connectionID uint64) error {
 	trainModelRequest := TrainModelRequest{
 		ReplayBuffer: "replay_buffer_1", // Example identifier for replay buffer
 		Iterations:   iterations,
 		ConnectionID: connectionID,
 	}
-
+	fmt.Println(trainModelRequest)
 	return sendRequest("/train_model", trainModelRequest)
 }
 
-func plotTrainingHistory(connectionID string) error {
-	plotRequest := map[string]string{"connection_id": connectionID}
+func plotTrainingHistory(connectionID uint64) error {
+	plotRequest := map[string]uint64{"connection_id": connectionID}
 	return sendRequest("/plot_training_history", plotRequest)
 }
 

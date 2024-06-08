@@ -1,11 +1,10 @@
 package quic
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
+	"log"
 	"math"
-	"net/http"
+	"math/rand"
 	"time"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
@@ -432,132 +431,6 @@ func (sch *scheduler) GetStateAndRewardMultiClientsRetrans(s *session, pth *path
 
 }
 
-// func updateReward(url string, payload RewardPayload) error {
-// 	jsonPayload, err := json.Marshal(payload)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
-// 	if err != nil {
-// 		return err
-// 	}
-// 	defer resp.Body.Close()
-
-// 	var response map[string]interface{}
-// 	err = json.NewDecoder(resp.Body).Decode(&response)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	if status, ok := response["status"].(string); !ok || status != "Reward updated" {
-// 		return fmt.Errorf("unexpected response: %v", response)
-// 	}
-
-// 	return nil
-// }
-
-func updateReward(url string, payload RewardPayload) error {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	// Use a goroutine to perform the POST request without waiting for the response
-	go func() {
-		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
-		if err != nil {
-			fmt.Println("Error sending POST request:", err)
-		}
-	}()
-
-	return nil
-}
-
-func (sch *scheduler) GetStateAndRewardDQN(s *session, pth *path) {
-	packetNumber := make(map[protocol.PathID]uint64)
-	retransNumber := make(map[protocol.PathID]uint64)
-	lostNumber := make(map[protocol.PathID]uint64)
-
-	lRTT := make(map[protocol.PathID]time.Duration)
-	sRTT := make(map[protocol.PathID]time.Duration)
-	mRTT := make(map[protocol.PathID]time.Duration)
-
-	CWND := make(map[protocol.PathID]protocol.ByteCount)
-	CWNDlevel := make(map[protocol.PathID]float32)
-	INP := make(map[protocol.PathID]protocol.ByteCount)
-
-	reWard := make(map[protocol.PathID]float64)
-
-	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
-
-	for pathID, path := range s.paths {
-		if pathID != protocol.InitialPathID {
-			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
-			lRTT[pathID] = path.rttStats.LatestRTT()
-			sRTT[pathID] = path.rttStats.SmoothedRTT()
-			mRTT[pathID] = path.rttStats.MinRTT()
-			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
-			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
-			if float32(CWND[pathID]) != 0 {
-				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
-			} else {
-				CWNDlevel[pathID] = 1
-			}
-			// Ordering paths
-			if firstPath == protocol.PathID(255) {
-				firstPath = pathID
-			} else {
-				if pathID < firstPath {
-					secondPath = firstPath
-					firstPath = pathID
-				} else {
-					secondPath = pathID
-				}
-			}
-		}
-	}
-
-	//alpha := 0.01
-	//reWard[firstPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[firstPath])) - float64(lostNumber[firstPath]/packetNumber[firstPath])
-	//reWard[secondPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[secondPath]))- float64(lostNumber[secondPath]/packetNumber[secondPath])
-
-	rttrate := 0.0
-	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
-	lostrate := 10 * float64(lostNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	if mRTT[pth.pathID] != 0 {
-		rttrate = float64(lRTT[pth.pathID]) / float64(mRTT[pth.pathID])
-	}
-
-	reWard[pth.pathID] = float64(goodput) - rttrate - lostrate
-	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
-	old_state := sch.list_State_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
-	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
-
-	nextState := StateDQN{
-		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
-		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
-	}
-
-	rewardPayload := RewardPayload{
-		State:     old_state,
-		NextState: nextState,
-		Action:    old_action,
-		Reward:    reWard[pth.pathID],
-		Done:      false,
-	}
-	fmt.Println("PayLoad: ", rewardPayload)
-	err := updateReward(baseURL+"/update_reward", rewardPayload)
-	if err != nil {
-		fmt.Println("Error updating reward:", err)
-		return
-	}
-}
-
 func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 	rcvdpacketNumber := pth.lastRcvdPacketNumber
 	packetNumber := make(map[protocol.PathID]uint64)
@@ -687,4 +560,108 @@ func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 	newValue := (1-s.scheduler.Delta)*s.scheduler.Qqtable[Store{Row: ro1, Col: col}] + s.scheduler.Delta*(reWard[pth.pathID]+s.scheduler.Gamma*maxNextState)
 
 	s.scheduler.Qqtable[Store{Row: ro1, Col: col}] = newValue
+}
+
+func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
+	packetNumber := make(map[protocol.PathID]uint64)
+	retransNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
+
+	lRTT := make(map[protocol.PathID]time.Duration)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	mRTT := make(map[protocol.PathID]time.Duration)
+
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	CWNDlevel := make(map[protocol.PathID]float32)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	reWard := make(map[protocol.PathID]float64)
+
+	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+
+	for pathID, path := range s.paths {
+		if pathID != protocol.InitialPathID {
+			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
+			lRTT[pathID] = path.rttStats.LatestRTT()
+			sRTT[pathID] = path.rttStats.SmoothedRTT()
+			mRTT[pathID] = path.rttStats.MinRTT()
+			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
+			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
+			if float32(CWND[pathID]) != 0 {
+				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
+			} else {
+				CWNDlevel[pathID] = 1
+			}
+			// Ordering paths
+			if firstPath == protocol.PathID(255) {
+				firstPath = pathID
+			} else {
+				if pathID < firstPath {
+					secondPath = firstPath
+					firstPath = pathID
+				} else {
+					secondPath = pathID
+				}
+			}
+		}
+	}
+
+	rttrate := 0.0
+	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
+	lostrate := 10 * float64(lostNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+	if mRTT[pth.pathID] != 0 {
+		rttrate = float64(lRTT[pth.pathID]) / float64(mRTT[pth.pathID])
+	}
+
+	reWard[pth.pathID] = float64(goodput) - rttrate - lostrate
+	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
+	old_state := sch.list_State_SAC[State{pth.pathID, pth.lastRcvdPacketNumber}]
+	old_action := sch.list_Action_SAC[State{pth.pathID, pth.lastRcvdPacketNumber}]
+
+	nextState := StateDQN{
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+	}
+
+	state := make([]float64, stateDim)
+	state[0] = old_state.CWNDf
+	state[1] = old_state.INPf
+	state[2] = old_state.SRTTf
+	state[3] = old_state.CWNDs
+	state[4] = old_state.INPs
+	state[5] = old_state.SRTTs
+
+	nstate := make([]float64, stateDim)
+	nstate[0] = nextState.CWNDf
+	nstate[1] = nextState.INPf
+	nstate[2] = nextState.SRTTf
+	nstate[3] = nextState.CWNDs
+	nstate[4] = nextState.INPs
+	nstate[5] = nextState.SRTTs
+	done := rand.Float64() < 0.1 // Example condition to end episode
+
+	// Store experience in replay buffer
+	experience := Experience{
+		State:     state,
+		Action:    old_action,
+		Reward:    reWard[pth.pathID],
+		NextState: nstate,
+		Done:      done,
+	}
+
+	sch.replayBuffer = append(sch.replayBuffer, experience)
+
+	// Train model when buffer size reaches 64
+	fmt.Println("CHECK: ", len(sch.replayBuffer))
+	if len(sch.replayBuffer) >= bufferSize {
+		if err := trainModel(sch.replayBuffer, 10, ModelID); err != nil {
+			log.Fatalf("Failed to train model: %v", err)
+		}
+		sch.replayBuffer = sch.replayBuffer[:0] // Clear buffer
+	}
+
 }

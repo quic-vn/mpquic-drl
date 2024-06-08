@@ -101,11 +101,12 @@ func main() {
 				if err != nil {
 					log.Println("Error copying response body:", err)
 					utils.Infof("%f", float64(30000))
-					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
+					csvwriter.Write([]string{fmt.Sprint(float64(30000), fmt.Sprint(start))})
+					csvwriter.Flush()
 				} else {
 					elapsed := time.Since(start)
 					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
-					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
+					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000), fmt.Sprint(start)})
 					csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
 				}
 			}(addr)

@@ -31,6 +31,7 @@ CLIENT_END = ">> ./logs/client.logs 2>&1"
 
 with_background = 0  # Global variable to control the creation of background traffic
 stop_event = Event()  # Event to signal when to stop background traffic
+global_variable = time.time()
 
 class LinuxRouter(Node):
     def config(self, **params):
@@ -42,11 +43,15 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(50):
+    for i in range(3):
         # print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
-        time.sleep(10)
+
+        current_time = time.time()
+        next_update_time = (int(current_time // 10) + 1) * 10
+        sleep_time = next_update_time - current_time
+        time.sleep(sleep_time)
 
 def configClient(sta, id):
     sta.cmd("ifconfig sta{id}-wlan0 down".format(id=id))
