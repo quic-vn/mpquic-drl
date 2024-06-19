@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import matplotlib.pyplot as plt
+import random
 
 class Actor(nn.Module):
     def __init__(self, state_dim, action_dim, max_action):
@@ -40,45 +41,44 @@ class SACModel:
         self.training_history = {"critic_loss": [], "actor_loss": [], "rewards": []}
 
     def train(self, replay_buffer, iterations):
-        for _ in range(iterations):
-            state, action, reward, next_state, done = replay_buffer.sample()
-            state = torch.FloatTensor(state)
-            action = torch.FloatTensor(action)
-            reward = torch.FloatTensor(reward)
-            next_state = torch.FloatTensor(next_state)
-            done = torch.FloatTensor(done)
+        state, action, reward, next_state, done = zip(*[(torch.FloatTensor(exp['state']),
+                                                            torch.FloatTensor([exp['action']]),
+                                                            torch.FloatTensor([exp['reward']]),
+                                                            torch.FloatTensor(exp['next_state']),
+                                                            torch.FloatTensor([exp['done']])) for exp in replay_buffer])
+        state = torch.stack(state)
+        action = torch.stack(action)
+        reward = torch.stack(reward)
+        next_state = torch.stack(next_state)
+        done = torch.stack(done)
 
-            with torch.no_grad():
-                next_action = self.actor(next_state)
-                target_q = reward + (1 - done) * self.critic_target(next_state, next_action)
+        with torch.no_grad():
+            next_action = self.actor(next_state)
+            target_q = reward + (1 - done) * self.critic_target(next_state, next_action)
 
-            current_q = self.critic(state, action)
-            critic_loss = nn.MSELoss()(current_q, target_q)
+        current_q = self.critic(state, action)
+        critic_loss = nn.MSELoss()(current_q, target_q)
 
-            self.critic_optimizer.zero_grad()
-            critic_loss.backward()
-            self.critic_optimizer.step()
+        self.critic_optimizer.zero_grad()
+        critic_loss.backward()
+        self.critic_optimizer.step()
 
-            action_probs = self.actor(state)
-            actor_loss = -self.critic(state, action_probs).mean()
+        actor_loss = -self.critic(state, self.actor(state)).mean()
 
-            self.actor_optimizer.zero_grad()
-            actor_loss.backward()
-            self.actor_optimizer.step()
+        self.actor_optimizer.zero_grad()
+        actor_loss.backward()
+        self.actor_optimizer.step()
 
-            for param, target_param in zip(self.critic.parameters(), self.critic_target.parameters()):
-                target_param.data.copy_(0.995 * target_param.data + 0.005 * param.data)
-
-            self.training_history["critic_loss"].append(critic_loss.item())
-            self.training_history["actor_loss"].append(actor_loss.item())
-            self.training_history["rewards"].append(reward.mean().item())
+        self.training_history["critic_loss"].append(critic_loss.item())
+        self.training_history["actor_loss"].append(actor_loss.item())
+        self.training_history["rewards"].append(reward.mean().item())
 
     def select_action_prob(self, state):
         state = torch.FloatTensor(state).unsqueeze(0)
         action_probs = self.actor(state).cpu().data.numpy().flatten()
         return action_probs
 
-    def plot_training_history(self):
+    def plot_training_history(self, modelid):
         plt.figure(figsize=(12, 6))
 
         plt.subplot(1, 3, 1)
@@ -102,8 +102,11 @@ class SACModel:
         plt.title("Rewards")
         plt.legend()
 
+        # plt.tight_layout()
+        # plt.show()
         plt.tight_layout()
-        plt.show()
+        plt.savefig(f'logs/training_history_{modelid}.png')
+        plt.close()
 
 def create_model(state_dim, action_dim, max_action):
     return SACModel(state_dim, action_dim, max_action)

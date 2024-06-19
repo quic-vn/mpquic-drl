@@ -9,7 +9,7 @@ import (
 	"net/http"
 )
 
-var ModelID uint64 = 0
+var TMP_ModelID uint64 = 0
 
 // SACmodel's config - start
 const (
@@ -33,9 +33,9 @@ type SelectActionRequest struct {
 }
 
 type TrainModelRequest struct {
-	ReplayBuffer string `json:"replay_buffer"`
-	Iterations   int    `json:"iterations"`
-	ConnectionID uint64 `json:"connection_id"`
+	ReplayBuffer []Experience `json:"replay_buffer"`
+	Iterations   int          `json:"iterations"`
+	ConnectionID uint64       `json:"connection_id"`
 }
 
 type SelectActionResponse struct {
@@ -44,7 +44,7 @@ type SelectActionResponse struct {
 
 type Experience struct {
 	State     []float64 `json:"state"`
-	Action    int       `json:"action"`
+	Action    []float64 `json:"action"`
 	Reward    float64   `json:"reward"`
 	NextState []float64 `json:"next_state"`
 	Done      bool      `json:"done"`
@@ -112,12 +112,19 @@ func selectAction(state []float64, connectionID uint64) ([]float64, error) {
 
 func trainModel(replayBuffer []Experience, iterations int, connectionID uint64) error {
 	trainModelRequest := TrainModelRequest{
-		ReplayBuffer: "replay_buffer_1", // Example identifier for replay buffer
+		ReplayBuffer: replayBuffer,
 		Iterations:   iterations,
 		ConnectionID: connectionID,
 	}
-	fmt.Println(trainModelRequest)
-	return sendRequest("/train_model", trainModelRequest)
+
+	go func() {
+		err := sendRequest("/train_model", trainModelRequest)
+		if err != nil {
+			fmt.Printf("Error in trainModel: %s\n", err)
+		}
+	}()
+
+	return nil
 }
 
 func plotTrainingHistory(connectionID uint64) error {

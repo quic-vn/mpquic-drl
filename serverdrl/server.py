@@ -33,7 +33,7 @@ def select_action():
 @app.route('/train_model', methods=['POST'])
 def train_model():
     data = request.json
-    replay_buffer_id = data['replay_buffer']
+    replay_buffer = data['replay_buffer']
     iterations = data['iterations']
     connection_id = data['connection_id']
 
@@ -41,9 +41,9 @@ def train_model():
     if model is None:
         return jsonify({"error": "Model not found"}), 404
 
-    replay_buffer = fetch_replay_buffer(replay_buffer_id)
-    print(iterations)
     model.train(replay_buffer, iterations)
+    model.plot_training_history(connection_id)
+
     return jsonify({"status": "Model trained"})
 
 @app.route('/plot_training_history', methods=['POST'])

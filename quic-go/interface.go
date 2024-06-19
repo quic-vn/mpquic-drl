@@ -124,12 +124,13 @@ type Config struct {
 	// Should the host try to create new paths, if possible?
 	CreatePaths bool
 	//Arguments for agent
-	SchedulerName string
-	WeightsFile   string
-	Training      bool
-	Epsilon       float64
-	AllowedCongestion	int
-	DumpExperiences		bool
+	SchedulerName     string
+	WeightsFile       string
+	Training          bool
+	Epsilon           float64
+	AllowedCongestion int
+	DumpExperiences   bool
+	ClientNumber      int
 }
 
 // A Listener for incoming QUIC connections

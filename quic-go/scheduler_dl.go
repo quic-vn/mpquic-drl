@@ -2,7 +2,6 @@ package quic
 
 import (
 	"fmt"
-	"log"
 	"math"
 	"math/rand"
 	"time"
@@ -616,7 +615,7 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 	reWard[pth.pathID] = float64(goodput) - rttrate - lostrate
 	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
 	old_state := sch.list_State_SAC[State{pth.pathID, pth.lastRcvdPacketNumber}]
-	old_action := sch.list_Action_SAC[State{pth.pathID, pth.lastRcvdPacketNumber}]
+	// old_action := sch.list_Action_SAC[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
 	nextState := StateDQN{
 		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
@@ -647,21 +646,12 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 	// Store experience in replay buffer
 	experience := Experience{
 		State:     state,
-		Action:    old_action,
+		Action:    sch.current_Prob,
 		Reward:    reWard[pth.pathID],
 		NextState: nstate,
 		Done:      done,
 	}
-
+	fmt.Println(experience)
 	sch.replayBuffer = append(sch.replayBuffer, experience)
-
-	// Train model when buffer size reaches 64
-	fmt.Println("CHECK: ", len(sch.replayBuffer))
-	if len(sch.replayBuffer) >= bufferSize {
-		if err := trainModel(sch.replayBuffer, 10, ModelID); err != nil {
-			log.Fatalf("Failed to train model: %v", err)
-		}
-		sch.replayBuffer = sch.replayBuffer[:0] // Clear buffer
-	}
 
 }

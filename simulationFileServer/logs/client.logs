@@ -1,115 +1,80 @@
-2024/06/09 07:55:53 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:55:53 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:55:53 Starting new connection to 10.0.0.20 ([::]:37941 -> 10.0.0.20:6121), connectionID 50ff549d973ef4d3, version 512
-2024/06/09 07:55:53 Starting new connection to 10.0.0.20 ([::]:53024 -> 10.0.0.20:6121), connectionID bde2fa7c73320705, version 512
-Checck:  5836476677919536339
-Checck:  13682774030320535301
-2024/06/09 07:55:53 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:55:53 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:55:53 Starting new connection to 10.0.0.20 ([::]:43075 -> 10.0.0.20:6121), connectionID cf201e2db44e0035, version 512
-2024/06/09 07:55:53 GET https://10.0.0.20:6121/files/1MB
-Checck:  14924962346753196085
-2024/06/09 07:55:53 Starting new connection to 10.0.0.20 ([::]:50088 -> 10.0.0.20:6121), connectionID fbdceca4ca176998, version 512
-Checck:  18148640790905579928
-2024/06/09 07:55:53 Starting new connection to 10.0.0.20 ([::]:49547 -> 10.0.0.20:6121), connectionID 751401746190699d, version 512
-Checck:  8436369601336469917
-2024/06/09 07:55:53 Queueing packet 0x7 for later decryption
-2024/06/09 07:55:53 Queueing packet 0x7 for later decryption
-2024/06/09 07:55:53 Queueing packet 0x8 for later decryption
-2024/06/09 07:55:53 Queueing packet 0xa for later decryption
-2024/06/09 07:55:54 Queueing packet 0x9 for later decryption
-2024/06/09 07:56:25 Closing connection cf201e2db44e0035
-2024/06/09 07:56:25 Error copying response body: NetworkIdleTimeout: No recent network activity.
-2024/06/09 07:56:25 30000.000000
-2024/06/09 07:56:25 Connection cf201e2db44e0035 closed.
-2024/06/09 07:56:25 Closing connection bde2fa7c73320705
-2024/06/09 07:56:25 Connection bde2fa7c73320705 closed.
-2024/06/09 07:56:25 Error copying response body: NetworkIdleTimeout: No recent network activity.
-2024/06/09 07:56:25 30000.000000
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-2024/06/09 07:56:25 Closing connection 50ff549d973ef4d3
-2024/06/09 07:56:25 Connection 50ff549d973ef4d3 closed.
-2024/06/09 07:56:25 Error copying response body: NetworkIdleTimeout: No recent network activity.
-2024/06/09 07:56:25 Closing connection 751401746190699d
-2024/06/09 07:56:25 30000.000000
-2024/06/09 07:56:25 Error copying response body: NetworkIdleTimeout: No recent network activity.
-2024/06/09 07:56:25 30000.000000
-2024/06/09 07:56:25 Connection 751401746190699d closed.
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-2024/06/09 07:56:25 Closing connection fbdceca4ca176998
-2024/06/09 07:56:25 Connection fbdceca4ca176998 closed.
-2024/06/09 07:56:25 Error copying response body: NetworkIdleTimeout: No recent network activity.
-2024/06/09 07:56:25 30000.000000
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-2024/06/09 07:56:30 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:30 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:30 Starting new connection to 10.0.0.20 ([::]:50132 -> 10.0.0.20:6121), connectionID 72ee24f6ed51bc38, version 512
-2024/06/09 07:56:30 Starting new connection to 10.0.0.20 ([::]:39577 -> 10.0.0.20:6121), connectionID 25b54aff8981dfe4, version 512
-Checck:  2717160411572068324
-Checck:  8281597407743032376
-2024/06/09 07:56:30 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:30 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:30 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:30 Starting new connection to 10.0.0.20 ([::]:48041 -> 10.0.0.20:6121), connectionID b0d9d20591343262, version 512
-Checck:  12743447541974315618
-2024/06/09 07:56:30 Starting new connection to 10.0.0.20 ([::]:56301 -> 10.0.0.20:6121), connectionID fc6678521a18e173, version 512
-2024/06/09 07:56:30 Starting new connection to 10.0.0.20 ([::]:45712 -> 10.0.0.20:6121), connectionID 29571d1c30784fc1, version 512
-Checck:  18187356439202816371
-Checck:  2978881685438353345
-2024/06/09 07:56:40 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Connection 72ee24f6ed51bc38 closed.
-2024/06/09 07:56:40 Connection 25b54aff8981dfe4 closed.
-2024/06/09 07:56:40 Connection b0d9d20591343262 closed.
-2024/06/09 07:56:40 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Connection fc6678521a18e173 closed.
-2024/06/09 07:56:40 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Connection 29571d1c30784fc1 closed.
-2024/06/09 07:56:40 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:56:40 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-2024/06/09 07:56:50 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:50 Starting new connection to 10.0.0.20 ([::]:32848 -> 10.0.0.20:6121), connectionID 58e6a59f13b2399c, version 512
-Checck:  6405989622629939612
-2024/06/09 07:56:50 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:50 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:50 GET https://10.0.0.20:6121/files/1MB
-2024/06/09 07:56:50 Starting new connection to 10.0.0.20 ([::]:52796 -> 10.0.0.20:6121), connectionID d6943315c624e481, version 512
-Checck:  15462039589281391745
-2024/06/09 07:56:50 Starting new connection to 10.0.0.20 ([::]:53725 -> 10.0.0.20:6121), connectionID cbb423d44634f040, version 512
-2024/06/09 07:56:50 Starting new connection to 10.0.0.20 ([::]:37657 -> 10.0.0.20:6121), connectionID e9865a3d86ec5f9a, version 512
-Checck:  14678396480125202496
-2024/06/09 07:56:50 GET https://10.0.0.20:6121/files/1MB
-Checck:  16827236278019579802
-2024/06/09 07:56:50 Starting new connection to 10.0.0.20 ([::]:53014 -> 10.0.0.20:6121), connectionID 1a4d5434dd59e6f3, version 512
-Checck:  1895263604221535987
-2024/06/09 07:57:00 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Connection 58e6a59f13b2399c closed.
-2024/06/09 07:57:00 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Connection d6943315c624e481 closed.
-2024/06/09 07:57:00 Connection e9865a3d86ec5f9a closed.
-2024/06/09 07:57:00 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Connection cbb423d44634f040 closed.
-2024/06/09 07:57:00 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Closing session with error: HandshakeTimeout: Crypto handshake did not complete in time.
-2024/06/09 07:57:00 Connection 1a4d5434dd59e6f3 closed.
-2024/06/09 07:57:00 Error getting response: Get "https://10.0.0.20:6121/files/1MB": HandshakeTimeout: Crypto handshake did not complete in time.
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
-Error sending POST request: Post "http://10.0.0.20:8080/flag_training": dial tcp 10.0.0.20:8080: connect: connection refused
+2024/06/19 23:08:14 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:14 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:14 Starting new connection to 10.0.0.20 ([::]:50337 -> 10.0.0.20:6121), connectionID fef907801bb6cb0d, version 512
+2024/06/19 23:08:14 Starting new connection to 10.0.0.20 ([::]:43302 -> 10.0.0.20:6121), connectionID 7b6d3f3b63fe931e, version 512
+2024/06/19 23:08:14 GET https://10.0.0.20:6121/files/1MB
+Checck:  0
+Checck:  0
+2024/06/19 23:08:14 Starting new connection to 10.0.0.20 ([::]:42476 -> 10.0.0.20:6121), connectionID 3aae04bf877b35ad, version 512
+Checck:  0
+2024/06/19 23:08:14 Queueing packet 0x8 for later decryption
+2024/06/19 23:08:14 Queueing packet 0x7 for later decryption
+2024/06/19 23:08:14 Queueing packet 0x7 for later decryption
+2024/06/19 23:08:15 Info for stream 5 of 7b6d3f3b63fe931e
+2024/06/19 23:08:15 Path 0: sent 20 retrans 1 lost 0; rcv 35; loss rate: 0.000000
+2024/06/19 23:08:15 Path 1: sent 381 retrans 5 lost 5; rcv 474; loss rate: 0.013123
+2024/06/19 23:08:15 Path 3: sent 223 retrans 1 lost 0; rcv 434; loss rate: 0.000000
+2024/06/19 23:08:15 1181.114609
+2024/06/19 23:08:15 Info for stream 5 of 3aae04bf877b35ad
+2024/06/19 23:08:15 Path 0: sent 25 retrans 1 lost 0; rcv 37; loss rate: 0.000000
+2024/06/19 23:08:15 Path 1: sent 458 retrans 2 lost 1; rcv 564; loss rate: 0.002183
+2024/06/19 23:08:15 Path 3: sent 205 retrans 3 lost 0; rcv 386; loss rate: 0.000000
+2024/06/19 23:08:15 1214.621667
+2024/06/19 23:08:15 Info for stream 5 of fef907801bb6cb0d
+2024/06/19 23:08:15 Path 0: sent 13 retrans 2 lost 0; rcv 17; loss rate: 0.000000
+2024/06/19 23:08:15 Path 1: sent 370 retrans 0 lost 0; rcv 483; loss rate: 0.000000
+2024/06/19 23:08:15 Path 3: sent 231 retrans 1 lost 0; rcv 414; loss rate: 0.000000
+2024/06/19 23:08:15 1297.121606
+2024/06/19 23:08:15 Info for stream 5 of fef907801bb6cb0d
+2024/06/19 23:08:20 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:20 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:20 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:20 Starting new connection to 10.0.0.20 ([::]:46320 -> 10.0.0.20:6121), connectionID 56bdb6c6b9072f3b, version 512
+2024/06/19 23:08:20 Starting new connection to 10.0.0.20 ([::]:34902 -> 10.0.0.20:6121), connectionID 1a05944cfe76dd53, version 512
+2024/06/19 23:08:20 Starting new connection to 10.0.0.20 ([::]:59515 -> 10.0.0.20:6121), connectionID 8be9ad403c90a0ea, version 512
+Checck:  0
+Checck:  0
+Checck:  0
+2024/06/19 23:08:20 Queueing packet 0x8 for later decryption
+2024/06/19 23:08:20 Queueing packet 0x7 for later decryption
+2024/06/19 23:08:20 Queueing packet 0x8 for later decryption
+2024/06/19 23:08:20 Info for stream 5 of 1a05944cfe76dd53
+2024/06/19 23:08:20 Path 0: sent 11 retrans 0 lost 0; rcv 17; loss rate: 0.000000
+2024/06/19 23:08:20 Path 1: sent 451 retrans 0 lost 0; rcv 539; loss rate: 0.000000
+2024/06/19 23:08:20 Path 3: sent 191 retrans 1 lost 0; rcv 374; loss rate: 0.000000
+2024/06/19 23:08:20 437.128432
+2024/06/19 23:08:20 Info for stream 5 of 8be9ad403c90a0ea
+2024/06/19 23:08:20 Path 1: sent 378 retrans 7 lost 5; rcv 494; loss rate: 0.013228
+2024/06/19 23:08:20 Path 3: sent 206 retrans 0 lost 0; rcv 400; loss rate: 0.000000
+2024/06/19 23:08:20 Path 0: sent 11 retrans 0 lost 0; rcv 15; loss rate: 0.000000
+2024/06/19 23:08:20 511.411875
+2024/06/19 23:08:30 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:30 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:08:30 Starting new connection to 10.0.0.20 ([::]:60851 -> 10.0.0.20:6121), connectionID d5068653fd975de4, version 512
+2024/06/19 23:08:30 Starting new connection to 10.0.0.20 ([::]:51815 -> 10.0.0.20:6121), connectionID 6cd26c3546012092, version 512
+Checck:  0
+Checck:  0
+2024/06/19 23:08:30 Queueing packet 0x7 for later decryption
+2024/06/19 23:08:30 Queueing packet 0x7 for later decryption
+2024/06/19 23:08:31 Info for stream 5 of 6cd26c3546012092
+2024/06/19 23:08:31 Path 0: sent 16 retrans 1 lost 0; rcv 23; loss rate: 0.000000
+2024/06/19 23:08:31 Path 1: sent 391 retrans 2 lost 2; rcv 503; loss rate: 0.005115
+2024/06/19 23:08:31 Path 3: sent 195 retrans 1 lost 0; rcv 388; loss rate: 0.000000
+2024/06/19 23:08:31 1589.160645
+2024/06/19 23:08:33 Info for stream 5 of d5068653fd975de4
+2024/06/19 23:08:33 Path 0: sent 18 retrans 0 lost 0; rcv 27; loss rate: 0.000000
+2024/06/19 23:08:33 Path 1: sent 430 retrans 1 lost 1; rcv 540; loss rate: 0.002326
+2024/06/19 23:08:33 Path 3: sent 206 retrans 1 lost 0; rcv 408; loss rate: 0.000000
+2024/06/19 23:08:33 3030.329697
+2024/06/19 23:09:20 Closing connection 56bdb6c6b9072f3b
+2024/06/19 23:09:20 Connection 56bdb6c6b9072f3b closed.
+2024/06/19 23:09:20 Error getting response: Get "https://10.0.0.20:6121/files/1MB": NetworkIdleTimeout: No recent network activity.
+2024/06/19 23:09:30 GET https://10.0.0.20:6121/files/1MB
+2024/06/19 23:09:30 Starting new connection to 10.0.0.20 ([::]:46707 -> 10.0.0.20:6121), connectionID f5910b9151b8fb30, version 512
+Checck:  0
+2024/06/19 23:09:30 Queueing packet 0x7 for later decryption
+2024/06/19 23:09:30 Info for stream 5 of f5910b9151b8fb30
+2024/06/19 23:09:30 Path 0: sent 13 retrans 0 lost 0; rcv 17; loss rate: 0.000000
+2024/06/19 23:09:30 Path 1: sent 394 retrans 3 lost 1; rcv 499; loss rate: 0.002538
+2024/06/19 23:09:30 Path 3: sent 204 retrans 1 lost 0; rcv 399; loss rate: 0.000000
+2024/06/19 23:09:30 534.703092

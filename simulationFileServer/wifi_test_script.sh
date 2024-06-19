@@ -14,7 +14,7 @@ sudo rm ./logs/*
 # sudo rm ./output/result-wireless/*
 
 declare -a mdlArr=("none")
-declare -a numArr=("5")
+declare -a numArr=("3")
 declare -a filArr=("1MB") 
 declare -a bgrArr=("0")
 declare -a frqArr=("0")
@@ -22,7 +22,7 @@ declare -a bwdArr=("15") #bandwidth
 declare -a owdArr=("15") #one-way delay
 declare -a varArr=("0") #variation delay
 declare -a losArr=("0") #pkt loss 
-# declare -a schArr=("random" "peek" "qsat")
+# declare -a schArr=("random" "peek" "qsat" "sac")
 declare -a schArr=("sac")
 
 for mdl in "${mdlArr[@]}"

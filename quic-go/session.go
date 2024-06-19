@@ -126,6 +126,8 @@ type session struct {
 	pathManagerLaunched bool
 
 	scheduler *scheduler
+
+	ModelID uint64
 }
 
 var _ Session = &session{}
@@ -299,8 +301,10 @@ func (s *session) setup(
 	)
 	s.unpacker = &packetUnpacker{aead: s.cryptoSetup, version: s.version}
 
-	ModelID = uint64(s.connectionID)
-	fmt.Println("Checck: ", ModelID)
+	// ModelID = uint64(s.connectionID)
+	// ModelID = uint64(s.config.ClientNumber)
+	s.ModelID = TMP_ModelID
+	fmt.Println("Checck: ", s.ModelID)
 
 	s.scheduler = &scheduler{SchedulerName: s.config.SchedulerName,
 		Training:          s.config.Training,

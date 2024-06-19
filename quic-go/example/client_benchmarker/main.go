@@ -74,6 +74,7 @@ func main() {
 	quicConfig := &quic.Config{
 		CreatePaths:    *multipath,
 		CacheHandshake: *cache,
+		ClientNumber:   *clt,
 	}
 
 	hclient := &http.Client{
@@ -101,12 +102,12 @@ func main() {
 				if err != nil {
 					log.Println("Error copying response body:", err)
 					utils.Infof("%f", float64(30000))
-					csvwriter.Write([]string{fmt.Sprint(float64(30000), fmt.Sprint(start))})
+					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
 					csvwriter.Flush()
 				} else {
 					elapsed := time.Since(start)
 					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
-					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000), fmt.Sprint(start)})
+					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
 					csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
 				}
 			}(addr)
@@ -115,7 +116,8 @@ func main() {
 		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
 	// Thêm waitgroup cho sendTrainSignal
-	wg.Add(1)
-	go sendTrainSignal(&wg)
-	wg.Wait()
+	// wg.Add(1)
+	// go sendTrainSignal(&wg)
+	// wg.Wait()
+	// modelID := &quic.ModelID
 }

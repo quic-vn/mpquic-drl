@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
@@ -147,7 +148,7 @@ type scheduler struct {
 	//new SAC
 	replayBuffer      []Experience
 	current_State_DQN StateDQN
-	current_Prob      float64
+	current_Prob      []float64
 	list_State_SAC    map[State]StateDQN
 	list_Action_SAC   map[State]int
 }
@@ -159,7 +160,6 @@ func (sch *scheduler) setup() {
 	sch.iRTT = make(map[protocol.PathID]float64)
 	sch.preRTT = make(map[protocol.PathID]time.Duration)
 	sch.waiting = 0
-	sch.current_Prob = 0
 
 	if sch.SchedulerName == "peek" || sch.SchedulerName == "lowband" {
 		//Read lin to buffer
@@ -234,7 +234,7 @@ func (sch *scheduler) setup() {
 			StateDim:     stateDim,
 			ActionDim:    actionDim,
 			MaxAction:    maxAction,
-			ConnectionID: ModelID,
+			ConnectionID: TMP_ModelID,
 		}
 
 		if err := sendRequest("/set_model", setModelRequest); err != nil {
@@ -1700,11 +1700,15 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 						fmt.Fprintf(file2, "%.8f\n", sch.MbaS[j])
 					}
 					file2.Close()
-				} else if sch.SchedulerName == "dqn" {
-					// updateData := UpdateDataDQN{
-					// 	Done: true,
-					// }
-					// sch.updateAgent(updateData)
+				} else if sch.SchedulerName == "sac" {
+					// Train model when buffer size reaches 64
+					fmt.Println("CHECK: ", len(sch.replayBuffer))
+					if len(sch.replayBuffer) >= bufferSize {
+						if err := trainModel(sch.replayBuffer, 10, s.ModelID); err != nil {
+							log.Fatalf("Failed to train model: %v", err)
+						}
+						sch.replayBuffer = sch.replayBuffer[:0] // Clear buffer
+					}
 				}
 			}
 		default:
@@ -2045,13 +2049,14 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 	state[4] = stateData.INPs
 	state[5] = stateData.SRTTs
 
-	actionProbs, err := selectAction(state, ModelID)
-	if err != nil {
-		log.Fatalf("Failed to select action: %v", err)
-	}
+	// actionProbs, err := selectAction(state, ModelID)
+	// if err != nil {
+	// 	log.Fatalf("Failed to select action: %v", err)
+	// }
+	sch.getActionAsync(state, s.ModelID)
 	// Choose an action based on probabilities
-	action := chooseAction(actionProbs)
-	fmt.Println(actionProbs, action)
+	action := chooseAction(sch.current_Prob)
+	fmt.Println(sch.current_Prob, action)
 	if action == 1 {
 		return s.paths[1]
 	} else if action == 2 {
@@ -2062,36 +2067,38 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 }
 
-func (sch *scheduler) getActionAsync(url string, state StateDQN) {
+func (sch *scheduler) getActionAsync(state []float64, connectionID uint64) {
 	go func() {
-		jsonPayload, err := json.Marshal(map[string]interface{}{
-			"state": state,
-		})
+		selectActionRequest := SelectActionRequest{
+			State:        state,
+			ConnectionID: connectionID,
+		}
+
+		url := serverURL + "/select_action"
+		jsonData, err := json.Marshal(selectActionRequest)
 		if err != nil {
-			fmt.Println("Error encoding JSON:", err)
+			fmt.Println("failed to marshal request data: %w", err)
 			return
 		}
 
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 		if err != nil {
-			fmt.Println("Error sending POST request:", err)
+			fmt.Println("failed to send request: %w", err)
 			return
 		}
 		defer resp.Body.Close()
 
-		var response ActionProbabilityResponse
-		err = json.NewDecoder(resp.Body).Decode(&response)
-		if err != nil {
-			fmt.Println("Error decoding response:", err)
+		if resp.StatusCode != http.StatusOK {
+			body, _ := ioutil.ReadAll(resp.Body)
+			fmt.Println("server returned non-OK status: %s, response: %s", resp.Status, body)
 			return
 		}
 
-		if response.Error != "" {
-			fmt.Println("Server returned error:", response.Error)
+		var selectActionResponse SelectActionResponse
+		if err := json.NewDecoder(resp.Body).Decode(&selectActionResponse); err != nil {
+			fmt.Println("failed to decode response: %w", err)
 			return
 		}
-
-		// fmt.Println("Received action probability:", response.Probability[0])
-		sch.current_Prob = response.Probability[0]
+		sch.current_Prob = selectActionResponse.ActionProbs
 	}()
 }

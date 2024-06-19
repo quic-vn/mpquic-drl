@@ -4,14 +4,16 @@ import (
 	"bytes"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
+	"regexp"
+	"strconv"
 	"sync"
 	"time"
-	"fmt"
-	"strconv"
-	"github.com/lucas-clemente/quic-go/internal/multiclients"
+
 	"github.com/lucas-clemente/quic-go/internal/crypto"
 	"github.com/lucas-clemente/quic-go/internal/handshake"
+	"github.com/lucas-clemente/quic-go/internal/multiclients"
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	"github.com/lucas-clemente/quic-go/internal/utils"
 	"github.com/lucas-clemente/quic-go/internal/wire"
@@ -207,12 +209,12 @@ func populateServerConfig(config *Config) *Config {
 		KeepAlive:                             config.KeepAlive,
 		MaxReceiveStreamFlowControlWindow:     maxReceiveStreamFlowControlWindow,
 		MaxReceiveConnectionFlowControlWindow: maxReceiveConnectionFlowControlWindow,
-		SchedulerName:												 config.SchedulerName,
-		WeightsFile:													 config.WeightsFile,
-		Training:															 config.Training,
-		Epsilon:															 config.Epsilon,
-		AllowedCongestion:											config.AllowedCongestion,
-		DumpExperiences:												config.DumpExperiences,
+		SchedulerName:                         config.SchedulerName,
+		WeightsFile:                           config.WeightsFile,
+		Training:                              config.Training,
+		Epsilon:                               config.Epsilon,
+		AllowedCongestion:                     config.AllowedCongestion,
+		DumpExperiences:                       config.DumpExperiences,
 	}
 }
 
@@ -359,7 +361,11 @@ func (s *server) handlePacket(rcvRawPacket *receivedRawPacket) error {
 		}
 
 		utils.Infof("Serving new connection: %x, version %s from %v", hdr.ConnectionID, version, remoteAddr)
-		
+		re := regexp.MustCompile(`\.(\d+):`)
+		match := re.FindStringSubmatch(remoteAddr.String())
+		resultUint, _ := strconv.ParseUint(match[1], 10, 64)
+		TMP_ModelID = resultUint
+		fmt.Println("CHECAD", TMP_ModelID)
 		//initial General Q-learning
 		// if _, ok := multiclients.S1[uint64(hdr.ConnectionID)];!ok {
 		// 	if _, ok1 := multiclients.CloseListSessions[uint64(hdr.ConnectionID)];!ok1 {
@@ -369,7 +375,7 @@ func (s *server) handlePacket(rcvRawPacket *receivedRawPacket) error {
 		// 	}
 		// }
 		var connID_tmp string = strconv.FormatUint(uint64(hdr.ConnectionID), 10)
-		if _, ok := multiclients.S2.Get(connID_tmp);!ok {
+		if _, ok := multiclients.S2.Get(connID_tmp); !ok {
 			multiclients.S2.Set(connID_tmp, &multiclients.StateMulti{})
 			fmt.Println("MultiLen: ", multiclients.S2.Count())
 			multiclients.NumSession++
