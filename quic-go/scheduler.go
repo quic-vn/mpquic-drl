@@ -53,6 +53,7 @@ type RewardPayload struct {
 	Action    float64  `json:"action"`
 	Reward    float64  `json:"reward"`
 	Done      bool     `json:"done"`
+	ModelID   uint64   `json:"model_id"`
 }
 
 // StatusResponse represents the response structure for /status endpoint
@@ -148,16 +149,21 @@ type scheduler struct {
 	list_Action_DQN   map[State]float64
 	current_State_DQN StateDQN
 	current_Prob      float64
+	model_id          uint64
 }
 
-func setModel(data map[string]string) {
+func setModel(modelType string, modelID uint64) {
 	url := "http://localhost:8080/set_model"
+	data := map[string]string{
+		"model_type": modelType,
+		"model_id":   strconv.FormatUint(modelID, 10), // Convert uint64 to string
+	}
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		fmt.Println("Error marshalling JSON:", err)
 		return
 	}
-
+	fmt.Println("CHECKKKK: ", data)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
 		fmt.Println("Error making POST request:", err)
@@ -166,7 +172,7 @@ func setModel(data map[string]string) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		fmt.Println("Model set to SAC successfully")
+		fmt.Println("Model set to SAC successfully", resp.Status)
 	} else {
 		fmt.Println("Failed to set model:", resp.Status)
 	}
@@ -266,13 +272,15 @@ func (sch *scheduler) setup() {
 
 	if sch.SchedulerName == "dqn" {
 		sch.list_State_DQN = make(map[State]StateDQN)
-		modelType := map[string]string{"model_type": "dqn"}
-		setModel(modelType)
+		// modelType := map[string]string{"model_type": "dqn"}
+		// setModel(modelType)
 	} else if sch.SchedulerName == "sac" {
 		sch.list_State_DQN = make(map[State]StateDQN)
 		sch.list_Action_DQN = make(map[State]float64)
-		// modelType := map[string]string{"model_type": "sac"}
-		// setModel(modelType)
+		sch.model_id = TMP_ModelID
+		fmt.Println("CheckllL: ", TMP_ModelID)
+		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
+		// setModel("sac", sch.model_id)
 	}
 
 }
@@ -2109,7 +2117,7 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 	action := 0
 	if sch.current_Prob == 0 {
-		sch.getActionAsync(baseURL+"/get_action", stateData)
+		sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
 	} else {
 		if sch.current_Prob > r.Float64() {
 			action = 1
@@ -2120,16 +2128,16 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 		}
 	}
 
-	sch.getActionAsync(baseURL+"/get_action", stateData)
-	if sch.current_Prob > r.Float64() {
-		action = 1
-	}
-	//fmt.Println("Action: ", action, "Prob: ", sch.current_Prob)
+	sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
+	// if sch.current_Prob > r.Float64() {
+	// 	action = 1
+	// }
+	// //fmt.Println("Action: ", action, "Prob: ", sch.current_Prob)
 
-	if s.paths[availablePaths[action]].SendingAllowed() {
-		sch.current_State_DQN = stateData
-		return s.paths[availablePaths[action]]
-	}
+	// if s.paths[availablePaths[action]].SendingAllowed() {
+	// 	sch.current_State_DQN = stateData
+	// 	return s.paths[availablePaths[action]]
+	// }
 
 	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
 		return s.paths[protocol.InitialPathID]
@@ -2166,11 +2174,14 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 // 	return response.Probability[0], nil
 // }
 
-func (sch *scheduler) getActionAsync(url string, state StateDQN) {
+func (sch *scheduler) getActionAsync(url string, state StateDQN, model_id uint64) {
 	go func() {
 		jsonPayload, err := json.Marshal(map[string]interface{}{
-			"state": state,
+			"state":    state,
+			"model_id": model_id,
 		})
+
+		// fmt.Println("GetAction: ", model_id)
 		if err != nil {
 			fmt.Println("Error encoding JSON:", err)
 			return

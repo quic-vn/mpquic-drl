@@ -19,7 +19,9 @@ from mn_wifi.wmediumdConnector import interference
 from mn_wifi.link import wmediumd
 from mn_wifi.node import Station
 
-SERVER_CMD = "python ../serverdrl/server.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+# SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 40 -b 0.0.0.0:8080 app:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD = "python ../serverdrl/app.py > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
@@ -31,6 +33,7 @@ CLIENT_END = ">> ./logs/client.logs 2>&1"
 
 with_background = 0  # Global variable to control the creation of background traffic
 stop_event = Event()  # Event to signal when to stop background traffic
+global_variable = time.time()
 
 class LinuxRouter(Node):
     def config(self, **params):
@@ -42,10 +45,14 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(50):
+    for i in range(30):
         # print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
+
+        # current_time = time.time()
+        # next_update_time = (int(current_time // 10) + 1) * 10
+        # sleep_time = next_update_time - current_time
         time.sleep(10)
 
 def configClient(sta, id):
@@ -149,10 +156,11 @@ def topology(args, server_cmd, client_cmd):
         r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
         ap1.cmd('tcset ap1-eth2 --rate 10Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
         ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
-   
+
     print(args)
     print(server_cmd)
     print(client_cmd)
+
     h1.sendCmd(server_cmd)
     time.sleep(10)
 

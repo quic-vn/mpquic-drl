@@ -549,8 +549,9 @@ func (sch *scheduler) GetStateAndRewardDQN(s *session, pth *path) {
 		Action:    old_action,
 		Reward:    reWard[pth.pathID],
 		Done:      false,
+		ModelID:   sch.model_id,
 	}
-	fmt.Println("PayLoad: ", rewardPayload)
+	// fmt.Println("PayLoad: ", rewardPayload)
 	err := updateReward(baseURL+"/update_reward", rewardPayload)
 	if err != nil {
 		fmt.Println("Error updating reward:", err)

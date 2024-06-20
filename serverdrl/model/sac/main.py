@@ -1,3 +1,4 @@
+import os
 import math
 import random
 import numpy as np
@@ -8,7 +9,7 @@ import torch.nn.functional as F
 from torch.distributions import Bernoulli
 from collections import deque, namedtuple
 import matplotlib
-matplotlib.use('Agg')  #backend 'Agg'
+matplotlib.use('Agg')  # backend 'Agg'
 import matplotlib.pyplot as plt
 
 # Set device
@@ -22,12 +23,12 @@ class ReplayBuffer:
 
     def normalize(self, state):
         state = np.array(state)
-        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
         return state
 
     def add(self, state, action, reward, next_state, done):
-        state = self.normalize(state)  # Chuẩn hóa state
-        next_state = self.normalize(next_state)  # Chuẩn hóa next_state
+        state = self.normalize(state)  # Normalize state
+        next_state = self.normalize(next_state)  # Normalize next_state
         e = self.experience(state, action, reward, next_state, done)
         self.buffer.append(e)
 
@@ -73,7 +74,6 @@ class PolicyNetwork(nn.Module):
         x = F.relu(self.linear1(state))
         x = F.relu(self.linear2(x))
         prob = torch.sigmoid(self.prob(x))
-        #print(f"State: {state}, Prob: {prob}")
         return prob
     
     def initialize_weights(self):
@@ -121,7 +121,7 @@ class SACAgent:
 
     def preprocess_state(self, state):
         state = np.array(state)
-        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
         return state
     
     def select_action(self, state):
@@ -131,64 +131,65 @@ class SACAgent:
         return action
 
     def get_action_probability(self, state):
-        state = self.preprocess_state(state)  # Chuẩn hóa trạng thái
+        state = self.preprocess_state(state)  # Normalize state
         return self.actor.get_action_probability(state)
 
-    def train(self, batch_size=64):
-        #print("TRAINNNNNNNNNNNNNNNNNNNN")
-        if len(self.replay_buffer) < batch_size:
-            return
+    def train(self, batch_size=64, num_epochs=1, model_id =0):
+        print("TRAINING, LEN: ", len(self.replay_buffer))
+        for epoch in range(num_epochs):
+            if len(self.replay_buffer) < batch_size:
+                continue
 
-        states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
+            states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
 
-        with torch.no_grad():
-            next_actions, next_log_probs = self.actor.sample_action(next_states)
-            target_q1 = self.target_critic1(next_states, next_actions)
-            target_q2 = self.target_critic2(next_states, next_actions)
-            target_q = torch.min(target_q1, target_q2) - self.alpha * next_log_probs
-            target_q = rewards + (1 - dones) * self.discount * target_q
+            with torch.no_grad():
+                next_actions, next_log_probs = self.actor.sample_action(next_states)
+                target_q1 = self.target_critic1(next_states, next_actions)
+                target_q2 = self.target_critic2(next_states, next_actions)
+                target_q = torch.min(target_q1, target_q2) - self.alpha * next_log_probs
+                target_q = rewards + (1 - dones) * self.discount * target_q
 
-        current_q1 = self.critic1(states, actions)
-        current_q2 = self.critic2(states, actions)
+            current_q1 = self.critic1(states, actions)
+            current_q2 = self.critic2(states, actions)
 
-        assert current_q1.shape == target_q.shape, f"current_q1.shape: {current_q1.shape}, target_q.shape: {target_q.shape}"
-        assert current_q2.shape == target_q.shape, f"current_q2.shape: {current_q2.shape}, target_q.shape: {target_q.shape}"
+            assert current_q1.shape == target_q.shape, f"current_q1.shape: {current_q1.shape}, target_q.shape: {target_q.shape}"
+            assert current_q2.shape == target_q.shape, f"current_q2.shape: {current_q2.shape}, target_q.shape: {target_q.shape}"
 
-        critic1_loss = F.mse_loss(current_q1, target_q)
-        critic2_loss = F.mse_loss(current_q2, target_q)
+            critic1_loss = F.mse_loss(current_q1, target_q)
+            critic2_loss = F.mse_loss(current_q2, target_q)
 
-        self.critic1_optimizer.zero_grad()
-        critic1_loss.backward()
-        self.critic1_optimizer.step()
+            self.critic1_optimizer.zero_grad()
+            critic1_loss.backward()
+            self.critic1_optimizer.step()
 
-        self.critic2_optimizer.zero_grad()
-        critic2_loss.backward()
-        self.critic2_optimizer.step()
+            self.critic2_optimizer.zero_grad()
+            critic2_loss.backward()
+            self.critic2_optimizer.step()
 
-        self.critic1_loss_history.append(critic1_loss.item())
-        self.critic2_loss_history.append(critic2_loss.item())
+            self.critic1_loss_history.append(critic1_loss.item())
+            self.critic2_loss_history.append(critic2_loss.item())
 
-        new_actions, log_probs = self.actor.sample_action(states)
-        q1_new = self.critic1(states, new_actions)
-        q2_new = self.critic2(states, new_actions)
-        actor_loss = (self.alpha * log_probs - torch.min(q1_new, q2_new)).mean()
-        
-        self.actor_loss_history.append(actor_loss.item())
-        # self.rewards_history.append(rewards.item())
+            new_actions, log_probs = self.actor.sample_action(states)
+            q1_new = self.critic1(states, new_actions)
+            q2_new = self.critic2(states, new_actions)
+            actor_loss = (self.alpha * log_probs - torch.min(q1_new, q2_new)).mean()
+            
+            self.actor_loss_history.append(actor_loss.item())
 
-        self.actor_optimizer.zero_grad()
-        actor_loss.backward()
-        self.actor_optimizer.step()
+            self.actor_optimizer.zero_grad()
+            actor_loss.backward()
+            self.actor_optimizer.step()
 
-        for param, target_param in zip(self.critic1.parameters(), self.target_critic1.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+            for param, target_param in zip(self.critic1.parameters(), self.target_critic1.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
-        for param, target_param in zip(self.critic2.parameters(), self.target_critic2.parameters()):
-            target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
-        
-        self.rewards_history.append(rewards.sum().item())
-        print("TRAINED")
-        self.plot_training_history()
+            for param, target_param in zip(self.critic2.parameters(), self.target_critic2.parameters()):
+                target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+            
+            self.rewards_history.append(rewards.sum().item())
+            # print(f"Epoch {epoch + 1}/{num_epochs} - Critic1 Loss: {critic1_loss.item()}, Critic2 Loss: {critic2_loss.item()}, Actor Loss: {actor_loss.item()}, Total Reward: {rewards.sum().item()}")
+
+        self.plot_training_history(model_id)
 
     def add_reward(self, reward):
         self.rewards_history.append(reward)
@@ -198,7 +199,17 @@ class SACAgent:
         for action in self.action_history:
             print(action)
 
-    def plot_training_history(self):
+    def plot_training_history(self, model_id):
+        # Ensure logs directory exists
+        if not os.path.exists('logs'):
+            os.makedirs('logs')
+
+        # Print histories for debugging
+        # print("Critic1 Loss History:", self.critic1_loss_history)
+        # print("Critic2 Loss History:", self.critic2_loss_history)
+        # print("Actor Loss History:", self.actor_loss_history)
+        # print("Rewards History:", self.rewards_history)
+
         plt.figure(figsize=(12, 6))
         plt.subplot(1, 3, 1)
         plt.plot(self.critic1_loss_history, label='Critic 1 Loss')
@@ -220,7 +231,7 @@ class SACAgent:
         plt.legend()
 
         plt.tight_layout()
-        plt.savefig('logs/training_history.png') 
+        plt.savefig(f'logs/training_history_{model_id}.png') 
         plt.close()
 
 class Environment:
