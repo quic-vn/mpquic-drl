@@ -382,7 +382,7 @@ func (s *server) handlePacket(rcvRawPacket *receivedRawPacket) error {
 		if _, ok := multiclients.S2.Get(connID_tmp); !ok {
 			multiclients.S2.Set(connID_tmp, &multiclients.StateMulti{})
 			fmt.Println("MultiLen: ", multiclients.S2.Count())
-			multiclients.NumSession++
+			// multiclients.NumSession++
 		}
 		if time.Time.IsZero(multiclients.ServerCreationTime) {
 			now := time.Now()

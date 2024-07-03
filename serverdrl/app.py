@@ -2,16 +2,20 @@ from flask import Flask, request, jsonify
 from model.sac.main import Environment as SACEnv
 import matplotlib.pyplot as plt
 import threading
+import argparse
 
 app = Flask(__name__)
 
 # Initialize the SAC environment
 models = {}
-models[3] = SACEnv()
-models[4] = SACEnv()
-models[5] = SACEnv()
+# models[3] = SACEnv()
+# models[4] = SACEnv()
+# models[5] = SACEnv()
+# models[6] = SACEnv()
+# models[7] = SACEnv()
 
 training_request_count = 0
+number_count = 0
 
 @app.route('/set_model', methods=['POST'])
 def set_model():
@@ -50,7 +54,7 @@ def flag_training():
         # Increment the training request counter
         training_request_count += 1
         print(f"Flag training called: count={training_request_count}")  # Log the training request count
-        if training_request_count >= 3:
+        if training_request_count >= number_count:
             for model_id, model in models.items():
                 print(f"Training model: model_id={model_id}")  # Log the model_id
                 training_thread = threading.Thread(target=train_model, args=(model, model_id))
@@ -186,3 +190,9 @@ def status():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080, threaded=True)
+
+    parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
+    parser.add_argument('--client', dest="clt", help="Client Number", required=True)
+    args = parser.parse_args()
+    number_count = args.clt
+    print(f"Number of client: count={number_count}")  

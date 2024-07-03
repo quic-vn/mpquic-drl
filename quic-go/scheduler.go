@@ -18,54 +18,6 @@ import (
 	"gonum.org/v1/gonum/mat"
 )
 
-// const banditAlpha = 0.75
-const banditDimension = 6
-const baseURL = "http://127.0.0.1:8080"
-
-// Structs để định dạng dữ liệu gửi đi và nhận về từ Flask API
-type StateDQN struct {
-	CWNDf float64 `json:"CWNDf"`
-	INPf  float64 `json:"INPf"`
-	SRTTf float64 `json:"SRTTf"`
-	CWNDs float64 `json:"CWNDs"`
-	INPs  float64 `json:"INPs"`
-	SRTTs float64 `json:"SRTTs"`
-}
-
-type UpdateDataDQN struct {
-	State     StateDQN `json:"state"`
-	Action    int      `json:"action"`
-	Reward    float64  `json:"reward"`
-	NextState StateDQN `json:"next_state"`
-	Done      bool     `json:"done"`
-}
-
-// ActionProbabilityResponse represents the response structure for /get_action endpoint
-type ActionProbabilityResponse struct {
-	Probability []float64 `json:"probability"`
-	Error       string    `json:"error"`
-}
-
-// RewardPayload represents the payload structure for /update_reward endpoint
-type RewardPayload struct {
-	State     StateDQN `json:"state"`
-	NextState StateDQN `json:"next_state"`
-	Action    float64  `json:"action"`
-	Reward    float64  `json:"reward"`
-	Done      bool     `json:"done"`
-	ModelID   uint64   `json:"model_id"`
-}
-
-// StatusResponse represents the response structure for /status endpoint
-type StatusResponse struct {
-	Status string `json:"status"`
-}
-
-type State struct {
-	id        protocol.PathID
-	pktnumber protocol.PacketNumber
-}
-
 type Store struct {
 	Row int8
 	Col int8
@@ -144,38 +96,18 @@ type scheduler struct {
 	// DumpPath  string
 	// dumpAgent experienceAgent
 
-	//DQN
+	//SAC
 	list_State_DQN    map[State]StateDQN
 	list_Action_DQN   map[State]float64
 	current_State_DQN StateDQN
 	current_Prob      float64
 	model_id          uint64
-}
 
-func setModel(modelType string, modelID uint64) {
-	url := "http://localhost:8080/set_model"
-	data := map[string]string{
-		"model_type": modelType,
-		"model_id":   strconv.FormatUint(modelID, 10), // Convert uint64 to string
-	}
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("Error marshalling JSON:", err)
-		return
-	}
-	fmt.Println("CHECKKKK: ", data)
-	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
-	if err != nil {
-		fmt.Println("Error making POST request:", err)
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-		fmt.Println("Model set to SAC successfully", resp.Status)
-	} else {
-		fmt.Println("Failed to set model:", resp.Status)
-	}
+	//SACMulti
+	list_State_SACMulti    map[State]StateSACMulti
+	list_Action_SACMulti   map[State]float64
+	current_State_SACMulti StateSACMulti
+	count_Action           uint16
 }
 
 func (sch *scheduler) setup() {
@@ -186,6 +118,10 @@ func (sch *scheduler) setup() {
 	sch.preRTT = make(map[protocol.PathID]time.Duration)
 	sch.waiting = 0
 	sch.current_Prob = 0
+
+	if sch.SchedulerName == "random" {
+		sch.current_Prob = 0.5
+	}
 
 	if sch.SchedulerName == "peek" || sch.SchedulerName == "lowband" {
 		//Read lin to buffer
@@ -279,6 +215,14 @@ func (sch *scheduler) setup() {
 		sch.list_Action_DQN = make(map[State]float64)
 		sch.model_id = TMP_ModelID
 		fmt.Println("CheckllL: ", TMP_ModelID)
+		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
+		setModel("sac", sch.model_id)
+	} else if sch.SchedulerName == "sacmulti" {
+		sch.list_State_SACMulti = make(map[State]StateSACMulti)
+		sch.list_Action_SACMulti = make(map[State]float64)
+		sch.count_Action = 0
+		// sch.model_id = TMP_ModelID
+		// fmt.Println("CheckllL: ", TMP_ModelID)
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		// setModel("sac", sch.model_id)
 	}
@@ -1645,7 +1589,7 @@ func (sch *scheduler) selectPath(s *session, hasRetransmission bool, hasStreamRe
 	if sch.SchedulerName == "rtt" {
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "random" {
-		return sch.selectPathRoundRobin(s, hasRetransmission, hasStreamRetransmission, fromPth)
+		return sch.selectPathRandom(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "peek" {
 		return sch.selectPathPeek(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "ecf" {
@@ -1656,6 +1600,8 @@ func (sch *scheduler) selectPath(s *session, hasRetransmission bool, hasStreamRe
 		return sch.selectPathDQN(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "sac" {
 		return sch.selectPathSAC(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.SchedulerName == "sacmulti" {
+		return sch.selectPathSACMulti(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "qsat" {
 		return sch.selectPathQSAT(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "fuzzyqsat" {
@@ -1712,10 +1658,10 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 				}
 
-				if sch.SchedulerName == "multiclients" {
+				if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
 					var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
 					multiclients.S2.Remove(connID)
-					utils.Infof("countSession: %d", multiclients.NumSession)
+					// utils.Infof("countSession: %d", multiclients.NumSession)
 				}
 				s.pathsLock.RUnlock()
 
@@ -1741,11 +1687,6 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 						fmt.Fprintf(file2, "%.8f\n", sch.MbaS[j])
 					}
 					file2.Close()
-				} else if sch.SchedulerName == "dqn" {
-					// updateData := UpdateDataDQN{
-					// 	Done: true,
-					// }
-					// sch.updateAgent(updateData)
 				}
 			}
 		default:
@@ -1964,6 +1905,12 @@ func (sch *scheduler) sendPacket(s *session) error {
 			//fmt.Println(sch.current_Prob)
 		}
 
+		if sch.SchedulerName == "sacmulti" && pth.pathID > 0 && pkt.PacketNumber > 0 {
+			sch.list_State_SACMulti[State{pth.pathID, pkt.PacketNumber}] = sch.current_State_SACMulti
+			sch.list_Action_SACMulti[State{pth.pathID, pkt.PacketNumber}] = sch.current_Prob
+			//fmt.Println(sch.current_Prob)
+		}
+
 		if sch.SchedulerName == "qsat" && pth.pathID > 0 && pkt.PacketNumber > 0 {
 			BSend, _ := s.flowControlManager.SendWindowSize(protocol.StreamID(5))
 			BSend1 := float32(BSend) / float32(protocol.DefaultMaxCongestionWindow) / 300
@@ -1996,6 +1943,58 @@ func (sch *scheduler) sendPacket(s *session) error {
 			}
 		}
 	}
+}
+
+func (sch *scheduler) selectPathRandom(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
+	if len(s.paths) <= 1 {
+		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
+			return nil
+		}
+		return s.paths[protocol.InitialPathID]
+	}
+
+	if len(s.paths) == 2 {
+		for pathID, path := range s.paths {
+			if pathID != protocol.InitialPathID {
+				utils.Debugf("Selecting path %d as unique path", pathID)
+				return path
+			}
+		}
+	}
+
+	// FIXME Only works at the beginning... Cope with new paths during the connection
+	if hasRetransmission && hasStreamRetransmission && fromPth.rttStats.SmoothedRTT() == 0 {
+		// Is there any other path with a lower number of packet sent?
+		currentQuota := sch.quotas[fromPth.pathID]
+		for pathID, pth := range s.paths {
+			if pathID == protocol.InitialPathID || pathID == fromPth.pathID {
+				continue
+			}
+			// The congestion window was checked when duplicating the packet
+			if sch.quotas[pathID] < currentQuota {
+				return pth
+			}
+		}
+	}
+
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
+
+	var action protocol.PathID
+	action = 1
+	if sch.current_Prob > r.Float64() {
+		action = 3
+	}
+	if s.paths[action].SendingAllowed() {
+		return s.paths[action]
+	}
+
+	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
+		return s.paths[protocol.InitialPathID]
+	} else {
+		return nil
+	}
+
 }
 
 func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
@@ -2175,6 +2174,203 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 // }
 
 func (sch *scheduler) getActionAsync(url string, state StateDQN, model_id uint64) {
+	go func() {
+		jsonPayload, err := json.Marshal(map[string]interface{}{
+			"state":    state,
+			"model_id": model_id,
+		})
+
+		// fmt.Println("GetAction: ", model_id)
+		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		var response ActionProbabilityResponse
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			fmt.Println("Error decoding response:", err)
+			return
+		}
+
+		if response.Error != "" {
+			fmt.Println("Server returned error:", response.Error)
+			return
+		}
+
+		// fmt.Println("Received action probability:", response.Probability[0])
+		sch.current_Prob = response.Probability[0]
+	}()
+}
+
+func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
+	if len(s.paths) <= 1 {
+		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
+			return nil
+		}
+		return s.paths[protocol.InitialPathID]
+	}
+
+	if len(s.paths) == 2 {
+		for pathID, path := range s.paths {
+			if pathID != protocol.InitialPathID {
+				utils.Debugf("Selecting path %d as unique path", pathID)
+				return path
+			}
+		}
+	}
+
+	// FIXME Only works at the beginning... Cope with new paths during the connection
+	if hasRetransmission && hasStreamRetransmission && fromPth.rttStats.SmoothedRTT() == 0 {
+		// Is there any other path with a lower number of packet sent?
+		currentQuota := sch.quotas[fromPth.pathID]
+		for pathID, pth := range s.paths {
+			if pathID == protocol.InitialPathID || pathID == fromPth.pathID {
+				continue
+			}
+			// The congestion window was checked when duplicating the packet
+			if sch.quotas[pathID] < currentQuota {
+				return pth
+			}
+		}
+	}
+
+	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	lRTT := make(map[protocol.PathID]time.Duration)
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	//Paths
+	var availablePaths []protocol.PathID
+	for pathID, pth := range s.paths {
+		CWND[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+		INP[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+		sRTT[pathID] = pth.rttStats.SmoothedRTT()
+		lRTT[pathID] = pth.rttStats.LatestRTT()
+		if pathID != protocol.InitialPathID {
+			availablePaths = append(availablePaths, pathID)
+			if firstPath == protocol.PathID(255) {
+				firstPath = pathID
+			} else {
+				if pathID < firstPath {
+					secondPath = firstPath
+					firstPath = pathID
+				} else {
+					secondPath = pathID
+				}
+			}
+		}
+
+	}
+
+	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+	if _, ok := multiclients.S2.Get(connID); ok {
+		var tmp_value multiclients.StateMulti
+		tmp_value.FRTT = lRTT[firstPath]
+		tmp_value.SRTT = lRTT[secondPath]
+		tmp_value.FCWND = CWND[firstPath]
+		tmp_value.SCWND = CWND[secondPath]
+		tmp_value.FInP = INP[firstPath]
+		tmp_value.SInP = INP[secondPath]
+		multiclients.S2.Set(connID, tmp_value)
+	}
+
+	var CWNDf_total, INPf_total, CWNDs_total, INPs_total protocol.ByteCount
+	var SRTTf_total, SRTTs_total time.Duration
+	CWNDf_total = 0
+	INPf_total = 0
+	CWNDs_total = 0
+	INPs_total = 0
+	SRTTf_total = 0
+	SRTTs_total = 0
+
+	CWNDf_mean := 0.0
+	INPf_mean := 0.0
+	CWNDs_mean := 0.0
+	INPs_mean := 0.0
+	SRTTf_mean := 0.0
+	SRTTs_mean := 0.0
+
+	if multiclients.S2.Count() > 1 {
+		ItemsList := multiclients.S2.Items()
+		for _, element := range ItemsList {
+			if foo, ok := element.(multiclients.StateMulti); ok {
+				CWNDf_total += foo.FCWND
+				INPf_total += foo.FInP
+				CWNDs_total += foo.SCWND
+				INPs_total += foo.FInP
+				SRTTf_total += foo.FRTT
+				SRTTs_total += foo.SRTT
+			}
+		}
+		CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
+		INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
+		CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
+		INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
+		SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
+		SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
+	}
+
+	stateData := StateSACMulti{
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+
+		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf_all: SRTTf_mean / 50.0,
+		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs_all: SRTTs_mean / 50.0,
+
+		CNumber: multiclients.S2.Count(),
+	}
+
+	if sch.count_Action == 30 {
+		sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
+		sch.count_Action = 0
+	}
+
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
+
+	action := 0
+	if sch.current_Prob == 0 {
+		sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else {
+		if sch.current_Prob > r.Float64() {
+			action = 1
+		}
+		if s.paths[availablePaths[action]].SendingAllowed() {
+			sch.current_State_SACMulti = stateData
+			return s.paths[availablePaths[action]]
+		}
+	}
+
+	// sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
+	// return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+
+	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
+		return s.paths[protocol.InitialPathID]
+	} else {
+		return nil
+	}
+
+}
+
+func (sch *scheduler) getActionAsyncMulti(url string, state StateSACMulti, model_id uint64) {
 	go func() {
 		jsonPayload, err := json.Marshal(map[string]interface{}{
 			"state":    state,

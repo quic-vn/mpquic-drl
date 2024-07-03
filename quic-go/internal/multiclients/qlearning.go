@@ -1,10 +1,12 @@
 package multiclients
+
 //This is the package for q-learning central to control scheduler for multi clients
 import (
 	//"fmt"
 	"encoding/json"
 	"sync"
 	"time"
+
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 	// "github.com/orcaman/concurrent-map"
 )
@@ -12,33 +14,34 @@ import (
 var MultiQtable [5][5][5][5][2]float64 //state current Client [5][5] state not remain Clients [5][5], action [2]
 
 type StateMulti struct {
-	FRTT time.Duration
-	SRTT time.Duration
+	FRTT  time.Duration
+	SRTT  time.Duration
 	FCWND protocol.ByteCount
 	SCWND protocol.ByteCount
-	FInP protocol.ByteCount
-	SInP protocol.ByteCount
+	FInP  protocol.ByteCount
+	SInP  protocol.ByteCount
 }
 
 type StateClients map[uint64]*StateMulti //uint64 is connectionID (as session)
-type CloseSessions map[uint64]uint64 //uint64 is connectionID (as session)
+type CloseSessions map[uint64]uint64     //uint64 is connectionID (as session)
 
-var Flag_update  bool
+var Flag_update bool
+
 // var S1 = make(StateClients) //State central
 var S2 = NewConcurrentMap() //State central
 
 var CloseListSessions = make(CloseSessions)
+
 // var SharedQtable MultiQtable
-var NumSession = 0 //count the number of sessions
+// var NumSession = 0 //count the number of sessions
 
 var ServerCreationTime time.Time
+
 // var Shared_RTT [10][2]float64 //10 clients, 2 paths
 // var Shared_CWND [10][2]float64
 
-
-
-
 var SHARD_COUNT = 32
+
 // A "thread" safe map of type string:Anything.
 // To avoid lock bottlenecks this map is dived to several (SHARD_COUNT) map shards.
 type ConcurrentMap []*ConcurrentMapShared
@@ -329,7 +332,7 @@ func (m ConcurrentMap) Keys() []string {
 	return keys
 }
 
-//Reviles ConcurrentMap "private" variables to json marshal.
+// Reviles ConcurrentMap "private" variables to json marshal.
 func (m ConcurrentMap) MarshalJSON() ([]byte, error) {
 	// Create a temporary map, which will hold all item spread across shards.
 	tmp := make(map[string]interface{})

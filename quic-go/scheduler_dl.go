@@ -689,3 +689,148 @@ func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 
 	s.scheduler.Qqtable[Store{Row: ro1, Col: col}] = newValue
 }
+
+func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
+	packetNumber := make(map[protocol.PathID]uint64)
+	retransNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
+
+	lRTT := make(map[protocol.PathID]time.Duration)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	mRTT := make(map[protocol.PathID]time.Duration)
+
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	CWNDlevel := make(map[protocol.PathID]float32)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	reWard := make(map[protocol.PathID]float64)
+
+	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+
+	for pathID, path := range s.paths {
+		if pathID != protocol.InitialPathID {
+			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
+			lRTT[pathID] = path.rttStats.LatestRTT()
+			sRTT[pathID] = path.rttStats.SmoothedRTT()
+			mRTT[pathID] = path.rttStats.MinRTT()
+			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
+			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
+			if float32(CWND[pathID]) != 0 {
+				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
+			} else {
+				CWNDlevel[pathID] = 1
+			}
+			// Ordering paths
+			if firstPath == protocol.PathID(255) {
+				firstPath = pathID
+			} else {
+				if pathID < firstPath {
+					secondPath = firstPath
+					firstPath = pathID
+				} else {
+					secondPath = pathID
+				}
+			}
+		}
+	}
+
+	//alpha := 0.01
+	//reWard[firstPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[firstPath])) - float64(lostNumber[firstPath]/packetNumber[firstPath])
+	//reWard[secondPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[secondPath]))- float64(lostNumber[secondPath]/packetNumber[secondPath])
+
+	rttrate := 0.0
+	// goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
+	lostrate := 10 * float64(lostNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+	rttrate = float64(lRTT[pth.pathID]) / 200
+
+	reWard[pth.pathID] = -rttrate - lostrate
+	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
+	old_state := sch.list_State_SACMulti[State{pth.pathID, pth.lastRcvdPacketNumber}]
+	old_action := sch.list_Action_SACMulti[State{pth.pathID, pth.lastRcvdPacketNumber}]
+
+	var CWNDf_total, INPf_total, CWNDs_total, INPs_total protocol.ByteCount
+	var SRTTf_total, SRTTs_total time.Duration
+	CWNDf_total = 0
+	INPf_total = 0
+	CWNDs_total = 0
+	INPs_total = 0
+	SRTTf_total = 0
+	SRTTs_total = 0
+
+	CWNDf_mean := 0.0
+	INPf_mean := 0.0
+	CWNDs_mean := 0.0
+	INPs_mean := 0.0
+	SRTTf_mean := 0.0
+	SRTTs_mean := 0.0
+
+	if multiclients.S2.Count() > 1 {
+		ItemsList := multiclients.S2.Items()
+		for _, element := range ItemsList {
+			if foo, ok := element.(multiclients.StateMulti); ok {
+				CWNDf_total += foo.FCWND
+				INPf_total += foo.FInP
+				CWNDs_total += foo.SCWND
+				INPs_total += foo.FInP
+				SRTTf_total += foo.FRTT
+				SRTTs_total += foo.SRTT
+			}
+		}
+		CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
+		INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
+		CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
+		INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
+		SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
+		SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
+	}
+
+	nextState := StateSACMulti{
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+
+		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf_all: SRTTf_mean / 50.0,
+		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs_all: SRTTs_mean / 50.0,
+
+		CNumber: multiclients.S2.Count(),
+	}
+
+	rewardPayload := RewardPayloadSACMulti{
+		State:     old_state,
+		NextState: nextState,
+		Action:    old_action,
+		Reward:    reWard[pth.pathID],
+		Done:      false,
+		ModelID:   sch.model_id,
+	}
+	// fmt.Println("PayLoad: ", rewardPayload)
+	err := updateRewardSACMulti(baseURL+"/update_reward", rewardPayload)
+	if err != nil {
+		fmt.Println("Error updating reward:", err)
+		return
+	}
+}
+
+func updateRewardSACMulti(url string, payload RewardPayloadSACMulti) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	// Use a goroutine to perform the POST request without waiting for the response
+	go func() {
+		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+		}
+	}()
+
+	return nil
+}
