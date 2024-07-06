@@ -7,6 +7,14 @@ import argparse
 app = Flask(__name__)
 
 # Initialize the SAC environment
+# Initialize argparse and parse command-line arguments
+parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
+parser.add_argument('--client', dest="clt", help="Client Number", required=True, type=int)
+args = parser.parse_args()
+number_count = args.clt
+print(f"Number of clients: count={number_count}")
+training_request_count = 0
+
 models = {}
 # models[3] = SACEnv()
 # models[4] = SACEnv()
@@ -14,11 +22,9 @@ models = {}
 # models[6] = SACEnv()
 # models[7] = SACEnv()
 
-training_request_count = 0
-number_count = 0
-
 @app.route('/set_model', methods=['POST'])
 def set_model():
+    global models
     model_type = request.json.get('model_type', 'sac')
     model_id_str = request.json.get('model_id', '0')
 
@@ -42,7 +48,7 @@ def set_model():
 
 def train_model(model, model_id):
     try:
-        model.agent.train(batch_size=64, num_epochs=1, model_id=model_id)
+        model.agent.train(batch_size=64, model_id=model_id)
         print(f"Training completed for model_id: {model_id}")
     except Exception as e:
         print(f"Error training model_id {model_id}: {e}")
@@ -50,6 +56,8 @@ def train_model(model, model_id):
 @app.route('/flag_training', methods=['POST'])
 def flag_training():
     global training_request_count
+    global number_count
+    global models
     try:
         # Increment the training request counter
         training_request_count += 1
@@ -57,8 +65,10 @@ def flag_training():
         if training_request_count >= number_count:
             for model_id, model in models.items():
                 print(f"Training model: model_id={model_id}")  # Log the model_id
-                training_thread = threading.Thread(target=train_model, args=(model, model_id))
-                training_thread.start()
+                # training_thread = threading.Thread(target=train_model, args=(model, model_id))
+                # training_thread.start()
+                model.agent.train(batch_size=64, model_id=model_id)
+
             training_request_count = 0  # Reset the counter after training
             return jsonify({'status': 'Training started for all models'}), 200
         else:
@@ -68,31 +78,9 @@ def flag_training():
         print(f"Error in training: {e}")
         return jsonify({'error': str(e)}), 500
 
-def get_action_thread(state, model_id, response):
-    try:
-        required_fields = ['CWNDf', 'INPf', 'SRTTf', 'CWNDs', 'INPs', 'SRTTs']
-        for field in required_fields:
-            if field not in state:
-                response['error'] = f'Missing field in state data: {field}'
-                return
-
-        state = [state['CWNDf'], state['INPf'], state['SRTTf'], 
-                 state['CWNDs'], state['INPs'], state['SRTTs']]
-
-        if model_id not in models:
-            response['error'] = 'Model ID not found'
-            return
-
-        # print(f"Get action: model_id={model_id}, state={state}")  # Log the model_id and state
-
-        prob = models[model_id].agent.get_action_probability(state)
-        response['probability'] = prob.tolist()
-
-    except Exception as e:
-        response['error'] = str(e)
-
 @app.route('/get_action', methods=['POST'])
 def get_action():
+    global models
     try:
         state_json = request.json.get('state')
         model_id_str = request.json.get('model_id')
@@ -105,77 +93,53 @@ def get_action():
         except ValueError as e:
             return jsonify({'error': f'Invalid model_id: {e}'}), 400
         
-        response = {}
-        action_thread = threading.Thread(target=get_action_thread, args=(state_json, model_id, response))
-        action_thread.start()
-        action_thread.join()  # Ensure the thread completes before responding
+        required_fields = ['CWNDf', 'INPf', 'SRTTf', 'CWNDs', 'INPs', 'SRTTs']
+        for field in required_fields:
+            if field not in state_json:
+                return jsonify({'error': f'Missing field in state data: {field}'}), 400
 
-        if 'error' in response:
-            return jsonify({'error': response['error']}), 400
+        state = [state_json['CWNDf'], state_json['INPf'], state_json['SRTTf'], 
+                 state_json['CWNDs'], state_json['INPs'], state_json['SRTTs']]
 
-        return jsonify({'probability': response['probability']}), 200
+        # for model_id, model in models.items():
+        #     print(f"Check: model_id={model_id}")  # Log the model_id and state
+
+        if model_id not in models:
+            return jsonify({'error': f'GetAction: Model ID {model_id} not found'}), 400
+
+        # print(f"Get action: model_id={model_id}, state={state}")  # Log the model_id and state
+
+        prob = models[model_id].agent.get_action_probability(state)
+
+        return jsonify({'probability': prob.tolist()}), 200
 
     except Exception as e:
         print(f"Error in get_action: {e}")
         return jsonify({'error': str(e)}), 500
 
-def update_reward_thread(data, response):
+@app.route('/update_reward', methods=['POST'])
+def update_reward():
+    global models
     try:
-        state_json = data.get('state')
-        next_state_json = data.get('next_state')
-        model_id_str = data.get('model_id')
-
-        if not model_id_str:
-            response['error'] = 'model_id is missing'
-            return
-
-        try:
-            model_id = int(model_id_str)  # Convert model_id to integer
-        except ValueError as e:
-            response['error'] = f'Invalid model_id: {e}'
-            return
-
-        if not state_json or not next_state_json:
-            response['error'] = 'State or next_state data is missing'
-            return
+        data = request.json
+        state_json = data['state']
+        next_state_json = data['next_state']
         
         state = [state_json['CWNDf'], state_json['INPf'], state_json['SRTTf'], 
                  state_json['CWNDs'], state_json['INPs'], state_json['SRTTs']]
         next_state = [next_state_json['CWNDf'], next_state_json['INPf'], next_state_json['SRTTf'], 
                       next_state_json['CWNDs'], next_state_json['INPs'], next_state_json['SRTTs']]
         
-        action = data.get('action')
-        reward = data.get('reward')
-        done = data.get('done')
-
-        if action is None or reward is None or done is None:
-            response['error'] = 'Action, reward, or done data is missing'
-            return
-
-        if model_id not in models:
-            response['error'] = 'Model ID not found'
-            return
-
-        # print(f"Update reward: model_id={model_id}, state={state}, next_state={next_state}, action={action}, reward={reward}, done={done}")  # Log the model_id and other details
+        action = data['action']
+        reward = data['reward']
+        done = data['done']
+        model_id = int(data['model_id'])
 
         models[model_id].agent.replay_buffer.add(state, action, reward, next_state, done)
-        response['status'] = 'Reward updated'
-    except Exception as e:
-        response['error'] = str(e)
+        #current_env.agent.add_reward(reward)
+        #current_env.agent.train(batch_size=64)
 
-@app.route('/update_reward', methods=['POST'])
-def update_reward():
-    try:
-        data = request.json
-        response = {}
-        update_thread = threading.Thread(target=update_reward_thread, args=(data, response))
-        update_thread.start()
-        update_thread.join()  # Ensure the thread completes before responding
-
-        if 'error' in response:
-            return jsonify({'error': response['error']}), 400
-
-        return jsonify({'status': response['status']}), 200
+        return jsonify({'status': 'Reward updated'}), 200
     except Exception as e:
         print(f"Error in update_reward: {e}")
         return jsonify({'error': str(e)}), 500
@@ -190,9 +154,3 @@ def status():
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=8080, threaded=True)
-
-    parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
-    parser.add_argument('--client', dest="clt", help="Client Number", required=True)
-    args = parser.parse_args()
-    number_count = args.clt
-    print(f"Number of client: count={number_count}")  

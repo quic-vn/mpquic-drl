@@ -39,14 +39,13 @@ type ActionProbabilityResponse struct {
 
 // RewardPayload represents the payload structure for /update_reward endpoint
 type RewardPayload struct {
-	State          StateDQN `json:"state"`
-	NextState      StateDQN `json:"next_state"`
-	State_mean     StateDQN `json:"state_mean"`
-	NextState_mean StateDQN `json:"next_state_mean"`
-	Action         float64  `json:"action"`
-	Reward         float64  `json:"reward"`
-	Done           bool     `json:"done"`
-	ModelID        uint64   `json:"model_id"`
+	State       StateDQN `json:"state"`
+	NextState   StateDQN `json:"next_state"`
+	Action      float64  `json:"action"`
+	Reward      float64  `json:"reward"`
+	Done        bool     `json:"done"`
+	ModelID     uint64   `json:"model_id"`
+	CountReward uint16   `json:"count_reward"`
 }
 
 // StatusResponse represents the response structure for /status endpoint

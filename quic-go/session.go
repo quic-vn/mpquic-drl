@@ -655,7 +655,7 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 		s.scheduler.GetStateAndRewardQlearning(s, pth)
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && (s.scheduler.SchedulerName == "dqn" || s.scheduler.SchedulerName == "sac") {
-		s.scheduler.GetStateAndRewardDQN(s, pth)
+		s.scheduler.GetStateAndRewardSAC(s, pth)
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmulti" {
 		s.scheduler.GetStateAndRewardSACMulti(s, pth)

@@ -101,7 +101,11 @@ type scheduler struct {
 	list_Action_DQN   map[State]float64
 	current_State_DQN StateDQN
 	current_Prob      float64
+	current_Reward    float64
+	count_Reward      uint16
 	model_id          uint64
+	time_Get_Action   time.Time
+	list_Reward_DQN   map[float64]RewardPayload
 
 	//SACMulti
 	list_State_SACMulti    map[State]StateSACMulti
@@ -118,6 +122,10 @@ func (sch *scheduler) setup() {
 	sch.preRTT = make(map[protocol.PathID]time.Duration)
 	sch.waiting = 0
 	sch.current_Prob = 0
+	sch.current_Reward = 0
+	sch.count_Reward = 0
+	sch.time_Get_Action = time.Now()
+	sch.list_Reward_DQN = make(map[float64]RewardPayload)
 
 	if sch.SchedulerName == "random" {
 		sch.current_Prob = 0.5
@@ -214,7 +222,8 @@ func (sch *scheduler) setup() {
 		sch.list_State_DQN = make(map[State]StateDQN)
 		sch.list_Action_DQN = make(map[State]float64)
 		sch.model_id = TMP_ModelID
-		fmt.Println("CheckllL: ", TMP_ModelID)
+		// fmt.Println("CheckllL: ", TMP_ModelID)
+		sch.count_Action = 0
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		setModel("sac", sch.model_id)
 	} else if sch.SchedulerName == "sacmulti" {
@@ -2072,71 +2081,54 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
 	}
 
-	// action := 0
-	// action2 := 1
-	// if sch.current_Prob == 0 {
-	// 	prob, err := getAction(baseURL+"/get_action", stateData)
-	// 	if err != nil {
-	// 		fmt.Println("Error getting action:", err)
-	// 		return nil
-	// 	}
-	// 	sch.current_Prob = prob
-	// } else {
-	// 	if sch.current_Prob < rand.Float64() {
-	// 		action = 1
-	// 		action2 = 0
-	// 	}
+	if sch.current_Prob == 0 {
+		sch.current_Prob = 1
+		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
+		// rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		// fmt.Println("State: ", stateData)
 
-	// 	if s.paths[availablePaths[action]].SendingAllowed() {
-	// 		sch.current_State_DQN = stateData
-	// 		return s.paths[availablePaths[action]]
-	// 	}
-	// }
-	// // Get action from SAC model
-	// prob, err := getAction(baseURL+"/get_action", stateData)
-	// if err != nil {
-	// 	fmt.Println("Error getting action:", err)
-	// 	return nil
-	// }
+		sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.current_Prob == 1 {
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	}
 
-	// if prob < rand.Float64() {
-	// 	action = 1
-	// 	action2 = 0
-	// }
-	// //fmt.Printf("Action: %v\n", action)
+	// elapsed := time.Since(sch.time_Get_Action)
 
-	// if s.paths[availablePaths[action]].SendingAllowed() {
-	// 	sch.current_State_DQN = stateData
-	// 	return s.paths[availablePaths[action]]
-	// }
+	if sch.count_Action > 10 {
+		// fmt.Println("PayLoad: ", rewardPayload)
+		rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
+		rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		if _, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+			// fmt.Println("State: ", stateData, rewardPayload)
+		}
 
-	// Tạo một nguồn ngẫu nhiên mới với hạt giống hiện tại
+		sch.current_State_DQN = stateData
+		sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
+
+		sch.count_Action = 0
+		sch.count_Reward = 0
+		sch.current_Reward = 0
+		sch.time_Get_Action = time.Now()
+	} else {
+		sch.count_Action += 1
+	}
+
+	action := 0
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 
-	action := 0
-	if sch.current_Prob == 0 {
-		sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
-	} else {
-		if sch.current_Prob > r.Float64() {
-			action = 1
-		}
-		if s.paths[availablePaths[action]].SendingAllowed() {
-			sch.current_State_DQN = stateData
-			return s.paths[availablePaths[action]]
-		}
+	if sch.current_Prob > r.Float64() {
+		action = 1
 	}
-
-	sch.getActionAsync(baseURL+"/get_action", stateData, sch.model_id)
-	// if sch.current_Prob > r.Float64() {
-	// 	action = 1
-	// }
-	// //fmt.Println("Action: ", action, "Prob: ", sch.current_Prob)
-
-	// if s.paths[availablePaths[action]].SendingAllowed() {
-	// 	sch.current_State_DQN = stateData
-	// 	return s.paths[availablePaths[action]]
-	// }
+	if s.paths[availablePaths[action]].SendingAllowed() {
+		// sch.current_State_DQN = stateData
+		return s.paths[availablePaths[action]]
+	}
 
 	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
 		return s.paths[protocol.InitialPathID]
@@ -2175,6 +2167,7 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 func (sch *scheduler) getActionAsync(url string, state StateDQN, model_id uint64) {
 	go func() {
+		// time_now := time.Now()
 		jsonPayload, err := json.Marshal(map[string]interface{}{
 			"state":    state,
 			"model_id": model_id,
@@ -2207,6 +2200,20 @@ func (sch *scheduler) getActionAsync(url string, state StateDQN, model_id uint64
 
 		// fmt.Println("Received action probability:", response.Probability[0])
 		sch.current_Prob = response.Probability[0]
+
+		rewardPayload := RewardPayload{
+			State:       state,
+			NextState:   state,
+			Action:      sch.current_Prob,
+			Reward:      0.0,
+			Done:        false,
+			ModelID:     sch.model_id,
+			CountReward: 0,
+		}
+		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		// elaped := time.Since(time_now).Milliseconds()
+		// fmt.Println("Time_getAction: ", elaped)
 	}()
 }
 

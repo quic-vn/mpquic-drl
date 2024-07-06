@@ -27,7 +27,7 @@ class ReplayBuffer:
 
     def normalize(self, state):
         state = np.array(state)
-        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
         return state
 
     @staticmethod
@@ -139,7 +139,7 @@ class SACAgent:
 
     def preprocess_state(self, state):
         state = np.array(state)
-        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Thêm 1e-5 để tránh chia cho 0
+        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
         return state
     
     def select_action(self, state):
@@ -149,7 +149,7 @@ class SACAgent:
         return action
 
     def get_action_probability(self, state):
-        state = self.preprocess_state(state)  # Chuẩn hóa trạng thái
+        state = self.preprocess_state(state)  #  Normalize state
         return self.actor.get_action_probability(state)
 
     def train(self, batch_size=128):

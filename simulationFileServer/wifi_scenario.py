@@ -20,7 +20,7 @@ from mn_wifi.link import wmediumd
 from mn_wifi.node import Station
 
 # SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 12 -b 0.0.0.0:8080 app_multi:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD = "python ../serverdrl/app_multi.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD = "python ../serverdrl/app.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
 
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
@@ -45,7 +45,7 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(100):
+    for i in range(300):
         # print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
@@ -457,107 +458,89 @@ func (sch *scheduler) GetStateAndRewardMultiClientsRetrans(s *session, pth *path
 // 	return nil
 // }
 
-func updateReward(url string, payload RewardPayload) error {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
+func updateReward(url string, payload RewardPayload) {
 	// Use a goroutine to perform the POST request without waiting for the response
 	go func() {
-		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		jsonPayload, err := json.Marshal(payload)
+		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+		// fmt.Println("JSON: ", jsonPayload)
+		_, err = http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
 		if err != nil {
 			fmt.Println("Error sending POST request:", err)
 		}
 	}()
-
-	return nil
 }
 
-func (sch *scheduler) GetStateAndRewardDQN(s *session, pth *path) {
-	packetNumber := make(map[protocol.PathID]uint64)
-	retransNumber := make(map[protocol.PathID]uint64)
-	lostNumber := make(map[protocol.PathID]uint64)
+// func (sch *scheduler) GetStateAndRewardDQN(s *session, pth *path) {
+// 	packetNumber := make(map[protocol.PathID]uint64)
+// 	retransNumber := make(map[protocol.PathID]uint64)
+// 	lostNumber := make(map[protocol.PathID]uint64)
 
-	lRTT := make(map[protocol.PathID]time.Duration)
-	sRTT := make(map[protocol.PathID]time.Duration)
-	mRTT := make(map[protocol.PathID]time.Duration)
+// 	lRTT := make(map[protocol.PathID]time.Duration)
+// 	sRTT := make(map[protocol.PathID]time.Duration)
+// 	mRTT := make(map[protocol.PathID]time.Duration)
 
-	CWND := make(map[protocol.PathID]protocol.ByteCount)
-	CWNDlevel := make(map[protocol.PathID]float32)
-	INP := make(map[protocol.PathID]protocol.ByteCount)
+// 	CWND := make(map[protocol.PathID]protocol.ByteCount)
+// 	CWNDlevel := make(map[protocol.PathID]float32)
+// 	INP := make(map[protocol.PathID]protocol.ByteCount)
 
-	reWard := make(map[protocol.PathID]float64)
+// 	reWard := make(map[protocol.PathID]float64)
 
-	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+// 	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
 
-	for pathID, path := range s.paths {
-		if pathID != protocol.InitialPathID {
-			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
-			lRTT[pathID] = path.rttStats.LatestRTT()
-			sRTT[pathID] = path.rttStats.SmoothedRTT()
-			mRTT[pathID] = path.rttStats.MinRTT()
-			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
-			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
-			if float32(CWND[pathID]) != 0 {
-				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
-			} else {
-				CWNDlevel[pathID] = 1
-			}
-			// Ordering paths
-			if firstPath == protocol.PathID(255) {
-				firstPath = pathID
-			} else {
-				if pathID < firstPath {
-					secondPath = firstPath
-					firstPath = pathID
-				} else {
-					secondPath = pathID
-				}
-			}
-		}
-	}
+// 	for pathID, path := range s.paths {
+// 		if pathID != protocol.InitialPathID {
+// 			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
+// 			lRTT[pathID] = path.rttStats.LatestRTT()
+// 			sRTT[pathID] = path.rttStats.SmoothedRTT()
+// 			mRTT[pathID] = path.rttStats.MinRTT()
+// 			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
+// 			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
+// 			if float32(CWND[pathID]) != 0 {
+// 				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
+// 			} else {
+// 				CWNDlevel[pathID] = 1
+// 			}
+// 			// Ordering paths
+// 			if firstPath == protocol.PathID(255) {
+// 				firstPath = pathID
+// 			} else {
+// 				if pathID < firstPath {
+// 					secondPath = firstPath
+// 					firstPath = pathID
+// 				} else {
+// 					secondPath = pathID
+// 				}
+// 			}
+// 		}
+// 	}
 
-	//alpha := 0.01
-	//reWard[firstPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[firstPath])) - float64(lostNumber[firstPath]/packetNumber[firstPath])
-	//reWard[secondPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[secondPath]))- float64(lostNumber[secondPath]/packetNumber[secondPath])
+// 	//alpha := 0.01
+// 	//reWard[firstPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[firstPath])) - float64(lostNumber[firstPath]/packetNumber[firstPath])
+// 	//reWard[secondPath] = goodput1 - alpha*float64(NormalizeTimes(lRTT[secondPath]))- float64(lostNumber[secondPath]/packetNumber[secondPath])
 
-	rttrate := 0.0
-	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
-	lostrate := 10 * float64(lostNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	if mRTT[pth.pathID] != 0 {
-		rttrate = float64(lRTT[pth.pathID]) / float64(mRTT[pth.pathID])
-	}
+// 	rttrate := 0.0
+// 	// goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
+// 	lostrate := 10 * float64(lostNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+// 	rttrate = float64(lRTT[pth.pathID]) / 200
 
-	reWard[pth.pathID] = float64(goodput) - rttrate - lostrate
-	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
-	old_state := sch.list_State_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
-	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
+// 	reWard[pth.pathID] = -rttrate - lostrate
+// 	// fmt.Println("reWard", float64(goodput), rttrate, lostrate)
+// 	// old_state := sch.list_State_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
+// 	// old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
-	nextState := StateDQN{
-		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
-		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
-	}
-
-	rewardPayload := RewardPayload{
-		State:     old_state,
-		NextState: nextState,
-		Action:    old_action,
-		Reward:    reWard[pth.pathID],
-		Done:      false,
-		ModelID:   sch.model_id,
-	}
-	// fmt.Println("PayLoad: ", rewardPayload)
-	err := updateReward(baseURL+"/update_reward", rewardPayload)
-	if err != nil {
-		fmt.Println("Error updating reward:", err)
-		return
-	}
-}
+// 	// nextState := StateDQN{
+// 	// 	CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+// 	// 	INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+// 	// 	SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+// 	// 	CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+// 	// 	INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+// 	// 	SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+// 	// }
+// }
 
 func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 	rcvdpacketNumber := pth.lastRcvdPacketNumber
@@ -688,6 +671,86 @@ func (sch *scheduler) GetStateAndRewardQSAT(s *session, pth *path) {
 	newValue := (1-s.scheduler.Delta)*s.scheduler.Qqtable[Store{Row: ro1, Col: col}] + s.scheduler.Delta*(reWard[pth.pathID]+s.scheduler.Gamma*maxNextState)
 
 	s.scheduler.Qqtable[Store{Row: ro1, Col: col}] = newValue
+}
+
+func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
+	packetNumber := make(map[protocol.PathID]uint64)
+	retransNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
+
+	lRTT := make(map[protocol.PathID]time.Duration)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	mRTT := make(map[protocol.PathID]time.Duration)
+
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	CWNDlevel := make(map[protocol.PathID]float32)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	reWard := make(map[protocol.PathID]float64)
+
+	for pathID, path := range s.paths {
+		if pathID != protocol.InitialPathID {
+			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
+			lRTT[pathID] = path.rttStats.LatestRTT()
+			sRTT[pathID] = path.rttStats.SmoothedRTT()
+			mRTT[pathID] = path.rttStats.MinRTT()
+			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
+			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
+			if float32(CWND[pathID]) != 0 {
+				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
+			} else {
+				CWNDlevel[pathID] = 1
+			}
+		}
+	}
+
+	rttrate := 0.0
+	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / 100
+	lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+	rttrate = float64(lRTT[pth.pathID]) / 100 / 1000000
+
+	reWard[pth.pathID] = goodput - rttrate
+	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
+
+	var connID string = strconv.FormatFloat(old_action, 'E', -1, 64)
+	if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+		// fmt.Println("State: ", stateData, rewardPayload)
+		rewardPayload, ok := tmp_Reload.(RewardPayload)
+		if !ok {
+			fmt.Println("Type assertion failed")
+			return
+		}
+		if pth.pathID == 1 {
+			rewardPayload.Reward += reWard[pth.pathID] * old_action
+		} else {
+			rewardPayload.Reward += reWard[pth.pathID] * (1 - old_action)
+		}
+		rewardPayload.CountReward += 1
+
+		if rewardPayload.CountReward > 8 {
+			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
+			rewardPayload.Action = old_action
+
+			tmp_Payload := RewardPayload{
+				State:     rewardPayload.State,
+				NextState: rewardPayload.NextState,
+				Action:    rewardPayload.Action,
+				Reward:    rewardPayload.Reward,
+				Done:      false,
+				ModelID:   sch.model_id,
+			}
+
+			fmt.Println("Reward: ", rewardPayload.Reward, rttrate, lostrate)
+			updateReward(baseURL+"/update_reward", tmp_Payload)
+
+			// multiclients.List_Reward_DQN.Remove(connID)
+			rewardPayload.Reward = 0
+			rewardPayload.CountReward = 0
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		} else {
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		}
+	}
 }
 
 func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {

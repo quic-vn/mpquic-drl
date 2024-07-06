@@ -30,6 +30,8 @@ var Flag_update bool
 // var S1 = make(StateClients) //State central
 var S2 = NewConcurrentMap() //State central
 
+var List_Reward_DQN = NewConcurrentMap()
+
 var CloseListSessions = make(CloseSessions)
 
 // var SharedQtable MultiQtable
