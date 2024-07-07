@@ -84,12 +84,13 @@ type UpdateDataSACMulti struct {
 
 // RewardPayload represents the payload structure for /update_reward endpoint
 type RewardPayloadSACMulti struct {
-	State     StateSACMulti `json:"state"`
-	NextState StateSACMulti `json:"next_state"`
-	Action    float64       `json:"action"`
-	Reward    float64       `json:"reward"`
-	Done      bool          `json:"done"`
-	ModelID   uint64        `json:"model_id"`
+	State       StateSACMulti `json:"state"`
+	NextState   StateSACMulti `json:"next_state"`
+	Action      float64       `json:"action"`
+	Reward      float64       `json:"reward"`
+	Done        bool          `json:"done"`
+	ModelID     uint64        `json:"model_id"`
+	CountReward uint16        `json:"count_reward"`
 }
 
 func setModel(modelType string, modelID uint64) {

@@ -110,6 +110,7 @@ type scheduler struct {
 	//SACMulti
 	list_State_SACMulti    map[State]StateSACMulti
 	list_Action_SACMulti   map[State]float64
+	list_Reward_SACMulti   map[float64]RewardPayloadSACMulti
 	current_State_SACMulti StateSACMulti
 	count_Action           uint16
 }
@@ -229,6 +230,8 @@ func (sch *scheduler) setup() {
 	} else if sch.SchedulerName == "sacmulti" {
 		sch.list_State_SACMulti = make(map[State]StateSACMulti)
 		sch.list_Action_SACMulti = make(map[State]float64)
+		sch.list_Reward_SACMulti = make(map[float64]RewardPayloadSACMulti)
+
 		sch.count_Action = 0
 		// sch.model_id = TMP_ModelID
 		// fmt.Println("CheckllL: ", TMP_ModelID)
@@ -2098,11 +2101,17 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 	if sch.count_Action > 10 {
 		// fmt.Println("PayLoad: ", rewardPayload)
-		rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
-		rewardPayload.NextState = stateData
+		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
+		// rewardPayload.NextState = stateData
 		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
 		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
-		if _, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+		if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+			rewardPayload, ok := tmp_Reload.(RewardPayload)
+			if !ok {
+				fmt.Println("Type assertion failed")
+				return nil
+			}
+			rewardPayload.NextState = stateData
 			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
 			// fmt.Println("State: ", stateData, rewardPayload)
 		}
@@ -2344,30 +2353,60 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 		CNumber: multiclients.S2.Count(),
 	}
 
-	if sch.count_Action == 30 {
+	if sch.current_Prob == 0 {
+		sch.current_Prob = 1
+		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
+		// rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		// fmt.Println("State: ", stateData)
+
 		sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
-		sch.count_Action = 0
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.current_Prob == 1 {
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	}
 
+	// elapsed := time.Since(sch.time_Get_Action)
+
+	if sch.count_Action > 10 {
+		// fmt.Println("PayLoad: ", rewardPayload)
+		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
+		rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+			rewardPayload, ok := tmp_Reload.(RewardPayloadSACMulti)
+			if !ok {
+				fmt.Println("Type assertion failed")
+				return nil
+			}
+			rewardPayload.NextState = stateData
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+			// fmt.Println("State: ", stateData, rewardPayload)
+		}
+
+		sch.current_State_SACMulti = stateData
+		sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
+
+		sch.count_Action = 0
+		sch.count_Reward = 0
+		sch.current_Reward = 0
+		sch.time_Get_Action = time.Now()
+	} else {
+		sch.count_Action += 1
+	}
+
+	action := 0
 	src := rand.NewSource(time.Now().UnixNano())
 	r := rand.New(src)
 
-	action := 0
-	if sch.current_Prob == 0 {
-		sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
-		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
-	} else {
-		if sch.current_Prob > r.Float64() {
-			action = 1
-		}
-		if s.paths[availablePaths[action]].SendingAllowed() {
-			sch.current_State_SACMulti = stateData
-			return s.paths[availablePaths[action]]
-		}
+	if sch.current_Prob > r.Float64() {
+		action = 1
 	}
-
-	// sch.getActionAsyncMulti(baseURL+"/get_action", stateData, sch.model_id)
-	// return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	if s.paths[availablePaths[action]].SendingAllowed() {
+		// sch.current_State_DQN = stateData
+		return s.paths[availablePaths[action]]
+	}
 
 	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
 		return s.paths[protocol.InitialPathID]
@@ -2411,5 +2450,16 @@ func (sch *scheduler) getActionAsyncMulti(url string, state StateSACMulti, model
 
 		// fmt.Println("Received action probability:", response.Probability[0])
 		sch.current_Prob = response.Probability[0]
+		rewardPayload := RewardPayloadSACMulti{
+			State:       state,
+			NextState:   state,
+			Action:      sch.current_Prob,
+			Reward:      0.0,
+			Done:        false,
+			ModelID:     sch.model_id,
+			CountReward: 0,
+		}
+		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
 	}()
 }

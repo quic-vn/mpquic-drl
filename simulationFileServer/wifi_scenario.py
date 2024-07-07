@@ -21,6 +21,7 @@ from mn_wifi.node import Station
 
 # SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 12 -b 0.0.0.0:8080 app_multi:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
 SERVER_CMD = "python ../serverdrl/app.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD_SACMULTI = "python ../serverdrl/app_multi.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
 
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
@@ -45,7 +46,7 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(300):
+    for i in range(200):
         # print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
@@ -194,7 +195,10 @@ def topology(args, server_cmd, client_cmd):
 
 def do_training(args):
     global with_background
-    server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
+    if args.sch == "sac":
+        server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
+    else:
+        server_cmd = " ".join([SERVER_CMD_SACMULTI, CERTPATH, SCH % args.sch, ARGS, END])
     client_cmd = " ".join([CLIENT_CMD, CLIENT_FIL % args.fil, CLIENT_END])
     setLogLevel('info')
     with_background = int(args.bg)  # Set the global variable based on the command-line argument
