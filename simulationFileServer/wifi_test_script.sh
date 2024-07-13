@@ -10,8 +10,12 @@ pwd
 cp /home/"$(whoami)"/go/bin/example ./serverMPQUIC
 cp /home/"$(whoami)"/go/bin/client_benchmarker ./clientMPQUIC
 
-sudo rm ./logs/*
+# sudo rm ./logs/*
 # sudo rm ./output/result-wireless/*
+for i in {3..10}
+do
+    cp "clientMPQUIC" "clientMPQUIC$i"
+done
 
 declare -a mdlArr=("none")
 declare -a numArr=("8")
@@ -24,7 +28,7 @@ declare -a varArr=("10") #variation delay
 declare -a losArr=("0.9") #pkt loss 
 # declare -a schArr=("random" "rtt" "peek" "multiclients" "sac" "sacmulti")
 # declare -a schArr=("qsat")
-declare -a schArr=("rtt")
+declare -a schArr=("multiclients")
 
 for mdl in "${mdlArr[@]}"
 do 
@@ -47,7 +51,7 @@ do
                                     for sch in "${schArr[@]}"
                                     do
                                         echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
-                                        sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+                                        # sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   

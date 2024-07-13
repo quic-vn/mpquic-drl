@@ -28,13 +28,14 @@ SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC -n 1 -m -clt {id}"
+CLIENT_CMD = "./clientMPQUIC{id} -n 1 -m -clt {id}"
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
 with_background = 0  # Global variable to control the creation of background traffic
 stop_event = Event()  # Event to signal when to stop background traffic
 global_variable = time.time()
+global_flag = False
 
 class LinuxRouter(Node):
     def config(self, **params):
@@ -46,7 +47,8 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(250):
+    global global_flag
+    for i in range(500):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
@@ -55,7 +57,11 @@ def runClient(station, id, client_cmd):
         # tmp_time = float(5*(i+1)) - float(current_time - global_variable)
         # print(tmp_time)
         # time.sleep(tmp_time)
+        # print(output)
         time.sleep(float(id)/7.0)
+        if global_flag == True:
+            break
+    global_flag = True
 
 def configClient(sta, id):
     sta.cmd("ifconfig sta{id}-wlan0 down".format(id=id))

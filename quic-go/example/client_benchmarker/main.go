@@ -102,6 +102,7 @@ func main() {
 					log.Println("Error copying response body:", err)
 					utils.Infof("%f", float64(30000))
 					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
+					csvwriter.Flush()
 				} else {
 					elapsed := time.Since(start)
 					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
