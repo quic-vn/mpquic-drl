@@ -1,12 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_executor import Executor
 from model.sac.main import Environment as SACEnv
-import matplotlib.pyplot as plt
-import threading
 import argparse
 
 app = Flask(__name__)
+executor = Executor(app)
 
-# Initialize the SAC environment
 # Initialize argparse and parse command-line arguments
 parser = argparse.ArgumentParser(description='Executes a test with defined scheduler')
 parser.add_argument('--client', dest="clt", help="Client Number", required=True, type=int)
@@ -16,11 +15,6 @@ print(f"Number of clients: count={number_count}")
 training_request_count = 0
 
 models = {}
-# models[3] = SACEnv()
-# models[4] = SACEnv()
-# models[5] = SACEnv()
-# models[6] = SACEnv()
-# models[7] = SACEnv()
 
 @app.route('/set_model', methods=['POST'])
 def set_model():
@@ -48,7 +42,7 @@ def set_model():
 
 def train_model(model, model_id):
     try:
-        model.agent.train(batch_size=64, model_id=model_id)
+        model.agent.train(batch_size=2000, model_id=model_id)
         print(f"Training completed for model_id: {model_id}")
     except Exception as e:
         print(f"Error training model_id {model_id}: {e}")
@@ -65,9 +59,7 @@ def flag_training():
         if training_request_count >= number_count:
             for model_id, model in models.items():
                 print(f"Training model: model_id={model_id}")  # Log the model_id
-                # training_thread = threading.Thread(target=train_model, args=(model, model_id))
-                # training_thread.start()
-                model.agent.train(batch_size=64, model_id=model_id)
+                executor.submit(train_model, model, model_id)
 
             training_request_count = 0  # Reset the counter after training
             return jsonify({'status': 'Training started for all models'}), 200
@@ -101,15 +93,11 @@ def get_action():
         state = [state_json['CWNDf'], state_json['INPf'], state_json['SRTTf'], 
                  state_json['CWNDs'], state_json['INPs'], state_json['SRTTs']]
 
-        # for model_id, model in models.items():
-        #     print(f"Check: model_id={model_id}")  # Log the model_id and state
-
         if model_id not in models:
             return jsonify({'error': f'GetAction: Model ID {model_id} not found'}), 400
 
-        # print(f"Get action: model_id={model_id}, state={state}")  # Log the model_id and state
-
-        prob = models[model_id].agent.get_action_probability(state)
+        future = executor.submit(models[model_id].agent.get_action_probability, state)
+        prob = future.result()
 
         return jsonify({'probability': prob.tolist()}), 200
 
@@ -135,9 +123,7 @@ def update_reward():
         done = data['done']
         model_id = int(data['model_id'])
 
-        models[model_id].agent.replay_buffer.add(state, action, reward, next_state, done)
-        #current_env.agent.add_reward(reward)
-        #current_env.agent.train(batch_size=64)
+        executor.submit(models[model_id].agent.replay_buffer.add, state, action, reward, next_state, done)
 
         return jsonify({'status': 'Reward updated'}), 200
     except Exception as e:

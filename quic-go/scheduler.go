@@ -2078,10 +2078,10 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 	stateData := StateDQN{
 		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
 		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
 	}
 
 	if sch.current_Prob == 0 {
@@ -2327,28 +2327,35 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 				SRTTs_total += foo.SRTT
 			}
 		}
-		CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
-		INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
-		CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
-		INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
-		SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
-		SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
+		// CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
+		// INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
+		// CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
+		// INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
+		// SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
+		// SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
+
+		CWNDf_mean = float64(CWNDf_total)
+		INPf_mean = float64(INPf_total)
+		CWNDs_mean = float64(CWNDs_total)
+		INPs_mean = float64(INPs_total)
+		SRTTf_mean = NormalizeTimes(SRTTf_total)
+		SRTTs_mean = NormalizeTimes(SRTTs_total)
 	}
 
 	stateData := StateSACMulti{
 		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 50.0,
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
 		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 50.0,
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
 
 		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf_all: SRTTf_mean / 50.0,
+		SRTTf_all: SRTTf_mean / 100.0 / 1000000.0,
 		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
 		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs_all: SRTTs_mean / 50.0,
+		SRTTs_all: SRTTs_mean / 100.0 / 1000000.0,
 
 		CNumber: multiclients.S2.Count(),
 	}

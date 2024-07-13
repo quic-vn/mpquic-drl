@@ -787,7 +787,7 @@ func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
 	rttrate := 0.0
 	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / 100
 	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	rttrate = float64(lRTT[pth.pathID]) / 100 / 1000000
+	rttrate = float64(lRTT[pth.pathID]) / 100.0 / 1000000.0
 
 	reWard[pth.pathID] = goodput - rttrate
 	old_action := sch.list_Action_SACMulti[State{pth.pathID, pth.lastRcvdPacketNumber}]

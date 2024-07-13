@@ -29,7 +29,7 @@ ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
 CLIENT_CMD = "./clientMPQUIC -n 1 -m -clt {id}"
-CLIENT_FIL = "https://10.0.0.20:6121/files/%s"
+CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
 with_background = 0  # Global variable to control the creation of background traffic
@@ -46,18 +46,16 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(200):
-        # print(client_cmd.format(id=id))
+    for i in range(250):
+        print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
 
-        current_time = time.time()
-        tmp_time = float(5*(i+1)) - float(current_time - global_variable)
-        # next_update_time = (int((current_time - global_variable) // 10) + 1) * 10
-        # sleep_time = next_update_time - global_variable
-        # print(float(current_time - global_variable))
-        print(tmp_time)
-        time.sleep(tmp_time)
+        # current_time = time.time()
+        # tmp_time = float(5*(i+1)) - float(current_time - global_variable)
+        # print(tmp_time)
+        # time.sleep(tmp_time)
+        time.sleep(float(id)/7.0)
 
 def configClient(sta, id):
     sta.cmd("ifconfig sta{id}-wlan0 down".format(id=id))

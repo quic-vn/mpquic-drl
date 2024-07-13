@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
+from flask_executor import Executor
 from model.sacmulti.main import Environment as SACEnv
-import matplotlib.pyplot as plt
 import threading
 import argparse
 
@@ -12,6 +12,7 @@ number_count = args.clt
 print(f"Number of clients: count={number_count}")
 
 app = Flask(__name__)
+executor = Executor(app)
 
 # Initialize the SAC environment
 sac_env = SACEnv()
@@ -23,7 +24,7 @@ training_request_count = 0
 
 def train_model():
     try:
-        current_env.agent.train(batch_size=128)
+        current_env.agent.train(batch_size=2000)
     except Exception as e:
         print(f"Error in training: {e}")
 
@@ -54,8 +55,7 @@ def flag_training():
         training_request_count += 1
         print(f"Flag training called: count={training_request_count}")  # Log the training request count
         if training_request_count >= number_count:
-            training_thread = threading.Thread(target=train_model)
-            training_thread.start()
+            executor.submit(train_model)
             training_request_count = 0  # Reset the counter after training
             return jsonify({'status': 'Training started for all models'}), 200
         else:
@@ -86,7 +86,8 @@ def get_action():
         # print(f"Received state: {state}")
 
         # Get action probability from the SAC agent
-        prob = current_env.agent.get_action_probability(state)
+        future = executor.submit(current_env.agent.get_action_probability, state)
+        prob = future.result()
         # print(f"Action probability: {prob}")
 
         # Return the action probability as a response
@@ -117,7 +118,7 @@ def update_reward():
         reward = data['reward']
         done = data['done']
 
-        current_env.agent.replay_buffer.add(state, action, reward, next_state, done)
+        executor.submit(current_env.agent.replay_buffer.add, state, action, reward, next_state, done)
         #current_env.agent.add_reward(reward)
         #current_env.agent.train(batch_size=64)
 

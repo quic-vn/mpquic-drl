@@ -14,17 +14,17 @@ sudo rm ./logs/*
 # sudo rm ./output/result-wireless/*
 
 declare -a mdlArr=("none")
-declare -a numArr=("2")
+declare -a numArr=("8")
 declare -a filArr=("1MB") 
 declare -a bgrArr=("0")
 declare -a frqArr=("0")
-declare -a bwdArr=("10" "30") #bandwidth
-declare -a owdArr=("10" "15") #one-way delay
+declare -a bwdArr=("50") #bandwidth
+declare -a owdArr=("15") #one-way delay
 declare -a varArr=("10") #variation delay
 declare -a losArr=("0.9") #pkt loss 
-declare -a schArr=("random" "rtt" "peek" "qsat" "sac" "sacmulti")
-# declare -a schArr=("sacmulti")
-# declare -a schArr=("random" "rtt" "sac")
+# declare -a schArr=("random" "rtt" "peek" "multiclients" "sac" "sacmulti")
+# declare -a schArr=("qsat")
+declare -a schArr=("rtt")
 
 for mdl in "${mdlArr[@]}"
 do 
@@ -55,6 +55,9 @@ do
                                         sudo mv ./logs/result5.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result5.csv   
                                         sudo mv ./logs/result6.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result6.csv   
                                         sudo mv ./logs/result7.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result7.csv   
+                                        sudo mv ./logs/result8.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result8.csv   
+                                        sudo mv ./logs/result9.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result9.csv   
+                                        sudo mv ./logs/result10.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result10.csv   
 
                                         sudo mv ./logs/server-flask.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-flask.logs  
                                         sudo mv ./logs/training_history.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training.png 
@@ -63,6 +66,9 @@ do
                                         sudo mv ./logs/training_history_5.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_5.png 
                                         sudo mv ./logs/training_history_6.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_6.png 
                                         sudo mv ./logs/training_history_7.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_7.png 
+                                        sudo mv ./logs/training_history_8.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_8.png 
+                                        sudo mv ./logs/training_history_9.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_9.png 
+                                        sudo mv ./logs/training_history_10.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_10.png 
 
                                         sudo mn -c
                                         sleep 10
