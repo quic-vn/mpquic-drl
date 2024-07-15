@@ -86,8 +86,8 @@ type sentPacketHandler struct {
 	retransmissions uint64
 	losses          uint64
 
-	ackedBytes			protocol.ByteCount
-	sentBytes				protocol.ByteCount
+	ackedBytes protocol.ByteCount
+	sentBytes  protocol.ByteCount
 }
 
 // NewSentPacketHandler creates a new sentPacketHandler
@@ -115,6 +115,10 @@ func NewSentPacketHandler(rttStats *congestion.RTTStats, cong congestion.SendAlg
 	}
 }
 
+func (h *sentPacketHandler) SignalChangeCWWNDSAC(factor float64) {
+	h.congestion.SignalSAC(factor)
+}
+
 func (h *sentPacketHandler) GetStatistics() (uint64, uint64, uint64) {
 	return h.packets, h.retransmissions, h.losses
 }
@@ -126,7 +130,7 @@ func (h *sentPacketHandler) largestInOrderAcked() protocol.PacketNumber {
 	return h.LargestAcked
 }
 
-func (h *sentPacketHandler) GetLastPackets() (uint64) {
+func (h *sentPacketHandler) GetLastPackets() uint64 {
 	return uint64(h.lastSentPacketNumber)
 }
 
@@ -494,7 +498,7 @@ func (h *sentPacketHandler) GetSentBytes() protocol.ByteCount {
 	return h.sentBytes
 }
 
-func (h *sentPacketHandler) GetCongestionWindow() protocol.ByteCount{
+func (h *sentPacketHandler) GetCongestionWindow() protocol.ByteCount {
 	return h.congestion.GetCongestionWindow()
 }
 
@@ -540,7 +544,7 @@ func (h *sentPacketHandler) SendingAllowed() bool {
 			h.bytesInFlight,
 			h.congestion.GetCongestionWindow())
 		//fmt.Println("Congestion limited:", h.bytesInFlight, h.congestion.GetCongestionWindow())
-	}else if maxTrackedLimited{
+	} else if maxTrackedLimited {
 		utils.Debugf("Max tracked limited: %d",
 			protocol.PacketNumber(len(h.retransmissionQueue)+h.packetHistory.Len()))
 		//fmt.Println("Max tracked  limited:",protocol.PacketNumber(len(h.retransmissionQueue)+h.packetHistory.Len()))

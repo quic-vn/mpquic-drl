@@ -22,6 +22,7 @@ from mn_wifi.node import Station
 # SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 12 -b 0.0.0.0:8080 app_multi:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
 SERVER_CMD = "python ../serverdrl/app.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
 SERVER_CMD_SACMULTI = "python ../serverdrl/app_multi.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD_SACMULTIJOINCC = "python ../serverdrl/app_multiJoinCC.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
 
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
@@ -55,10 +56,11 @@ def runClient(station, id, client_cmd):
 
         # current_time = time.time()
         # tmp_time = float(5*(i+1)) - float(current_time - global_variable)
+        # if tmp_time < 0:
+        #     break
         # print(tmp_time)
         # time.sleep(tmp_time)
-        # print(output)
-        time.sleep(float(id)/7.0)
+        time.sleep(float(id)/5.0)
         if global_flag == True:
             break
     global_flag = True
@@ -104,7 +106,9 @@ def topology(args, server_cmd, client_cmd):
 
     stations = []
     for i in range(3, 3 + int(args.clt)):
-        sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='50,70,0')
+        x = i * 5
+        y = 50 - i * 3 * (-1)
+        sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
         stations.append(sta)
 
     c1 = net.addController('c1')
@@ -134,13 +138,16 @@ def topology(args, server_cmd, client_cmd):
     if args.mdl != 'none':
         net.setMobilityModel(time=0, model=args.mdl, max_x=100, max_y=100, seed=20, min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200., alpha=0.5, variance=4.)
 
-    info("*** Starting network\n")
-    net.build()
-
     for i, sta in enumerate(stations, start=3):
         configClient(sta, i)
 
     h1.cmd('ip route add default via 10.0.0.2')
+
+    info("*** Starting network\n")
+    if '-p' not in args:
+        net.plotGraph(max_x = 100, max_y = 100)
+    
+    net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
@@ -201,8 +208,11 @@ def do_training(args):
     global with_background
     if args.sch == "sac":
         server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
-    else:
+    elif args.sch == "sacmulti":
         server_cmd = " ".join([SERVER_CMD_SACMULTI, CERTPATH, SCH % args.sch, ARGS, END])
+    else:
+        server_cmd = " ".join([SERVER_CMD_SACMULTIJOINCC, CERTPATH, SCH % args.sch, ARGS, END])
+
     client_cmd = " ".join([CLIENT_CMD, CLIENT_FIL % args.fil, CLIENT_END])
     setLogLevel('info')
     with_background = int(args.bg)  # Set the global variable based on the command-line argument

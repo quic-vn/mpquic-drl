@@ -849,3 +849,100 @@ func updateRewardSACMulti(url string, payload RewardPayloadSACMulti) error {
 
 	return nil
 }
+
+func (sch *scheduler) GetStateAndRewardSACMultiJoinCC(s *session, pth *path) {
+	packetNumber := make(map[protocol.PathID]uint64)
+	retransNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
+
+	lRTT := make(map[protocol.PathID]time.Duration)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	mRTT := make(map[protocol.PathID]time.Duration)
+
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	CWNDlevel := make(map[protocol.PathID]float32)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	reWard := make(map[protocol.PathID]float64)
+
+	for pathID, path := range s.paths {
+		if pathID != protocol.InitialPathID {
+			packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = path.sentPacketHandler.GetStatistics()
+			lRTT[pathID] = path.rttStats.LatestRTT()
+			sRTT[pathID] = path.rttStats.SmoothedRTT()
+			mRTT[pathID] = path.rttStats.MinRTT()
+			CWND[pathID] = path.sentPacketHandler.GetCongestionWindow()
+			INP[pathID] = path.sentPacketHandler.GetBytesInFlight()
+			if float32(CWND[pathID]) != 0 {
+				CWNDlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(CWND[pathID])
+			} else {
+				CWNDlevel[pathID] = 1
+			}
+		}
+	}
+
+	rttrate := 0.0
+	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / 100
+	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+	rttrate = float64(lRTT[pth.pathID]) / 100.0 / 1000000.0
+
+	reWard[pth.pathID] = goodput - rttrate
+	old_action := sch.list_Action_SACMultiJoinCC[State{pth.pathID, pth.lastRcvdPacketNumber}]
+
+	var connID string = strconv.FormatFloat(old_action.Action1, 'f', 5, 64) + strconv.FormatFloat(old_action.Action2, 'f', 5, 64) + strconv.FormatFloat(old_action.Action3, 'f', 5, 64)
+	if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+		// fmt.Println("State: ", stateData, rewardPayload)
+		rewardPayload, ok := tmp_Reload.(RewardPayloadSACMultiJoinCC)
+		if !ok {
+			fmt.Println("Type assertion failed")
+			return
+		}
+		if pth.pathID == 1 {
+			rewardPayload.Reward += reWard[pth.pathID] * old_action.Action1
+		} else {
+			rewardPayload.Reward += reWard[pth.pathID] * (1 - old_action.Action1)
+		}
+		rewardPayload.CountReward += 1
+
+		if rewardPayload.CountReward > 8 {
+			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
+			rewardPayload.Action = old_action
+
+			tmp_Payload := RewardPayloadSACMultiJoinCC{
+				State:     rewardPayload.State,
+				NextState: rewardPayload.NextState,
+				Action:    rewardPayload.Action,
+				Reward:    rewardPayload.Reward,
+				Done:      false,
+				ModelID:   sch.model_id,
+			}
+
+			// fmt.Println("Reward: ", tmp_Payload)
+			updateRewardSACMultiJoinCC(baseURL+"/update_reward", tmp_Payload)
+
+			// multiclients.List_Reward_DQN.Remove(connID)
+			rewardPayload.Reward = 0
+			rewardPayload.CountReward = 0
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		} else {
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		}
+	}
+}
+
+func updateRewardSACMultiJoinCC(url string, payload RewardPayloadSACMultiJoinCC) error {
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+
+	// Use a goroutine to perform the POST request without waiting for the response
+	go func() {
+		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+		}
+	}()
+
+	return nil
+}

@@ -195,6 +195,21 @@ func (c *cubicSender) RenoBeta() float32 {
 	return (float32(c.numConnections) - 1. + renoBeta) / float32(c.numConnections)
 }
 
+func (o *cubicSender) SignalSAC(factor float64) {
+	// Do not increase the congestion window unless the sender is close to using
+	// the current window.
+	if o.congestionWindow >= o.maxTCPCongestionWindow {
+		return
+	}
+	if o.InSlowStart() {
+		// TCP slow start, exponential growth, increase by one for each ACK.
+		o.congestionWindow++
+		return
+	} else {
+		o.congestionWindow = utils.MinPacketNumber(o.maxTCPCongestionWindow, protocol.PacketNumber((float64(o.congestionWindow) * factor)))
+	}
+}
+
 // Called when we receive an ack. Normal TCP tracks how many packets one ack
 // represents, but quic has a separate ack for each packet.
 func (c *cubicSender) maybeIncreaseCwnd(ackedPacketNumber protocol.PacketNumber, ackedBytes protocol.ByteCount, bytesInFlight protocol.ByteCount) {

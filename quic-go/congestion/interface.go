@@ -6,6 +6,8 @@ import (
 	"github.com/lucas-clemente/quic-go/internal/protocol"
 )
 
+var CC_Flag uint8 = 0
+
 // A SendAlgorithm performs congestion control and calculates the congestion window
 type SendAlgorithm interface {
 	TimeUntilSend(now time.Time, bytesInFlight protocol.ByteCount) time.Duration
@@ -19,6 +21,7 @@ type SendAlgorithm interface {
 	OnConnectionMigration()
 	RetransmissionDelay() time.Duration
 	SmoothedRTT() time.Duration
+	SignalSAC(float64)
 
 	// Experiments
 	SetSlowStartLargeReduction(enabled bool)

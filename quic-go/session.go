@@ -660,6 +660,9 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmulti" {
 		s.scheduler.GetStateAndRewardSACMulti(s, pth)
 	}
+	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmultiJoinCC" {
+		s.scheduler.GetStateAndRewardSACMultiJoinCC(s, pth)
+	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "multiclients" {
 		if _, ok := s.scheduler.list_State[State{pth.pathID, pth.lastRcvdPacketNumber}]; ok {
 			if oldLost == newLost {

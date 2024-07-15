@@ -1,6 +1,7 @@
 package congestion
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/lucas-clemente/quic-go/internal/protocol"
@@ -210,6 +211,24 @@ func (o *OliaSender) getEpsilon() {
 	}
 }
 
+func (o *OliaSender) SignalSAC(factor float64) {
+	// Do not increase the congestion window unless the sender is close to using
+	// the current window.
+	fmt.Println("ChangeCWWND:", factor, o.congestionWindow, o.maxTCPCongestionWindow)
+	CC_Flag = 1
+	if o.congestionWindow >= o.maxTCPCongestionWindow {
+		return
+	}
+	if o.InSlowStart() {
+		// TCP slow start, exponential growth, increase by one for each ACK.
+		// o.congestionWindow++
+		return
+	} else {
+		o.congestionWindow = utils.MinPacketNumber(o.maxTCPCongestionWindow, protocol.PacketNumber((float64(o.congestionWindow) * factor)))
+	}
+	fmt.Println("ChangedCWWND:", o.congestionWindow)
+}
+
 func (o *OliaSender) maybeIncreaseCwnd(ackedPacketNumber protocol.PacketNumber, ackedBytes protocol.ByteCount, bytesInFlight protocol.ByteCount) {
 	// Do not increase the congestion window unless the sender is close to using
 	// the current window.
@@ -224,10 +243,12 @@ func (o *OliaSender) maybeIncreaseCwnd(ackedPacketNumber protocol.PacketNumber, 
 		o.congestionWindow++
 		return
 	} else {
-		o.getEpsilon()
-		rate := getRate(o.oliaSenders, o.rttStats.SmoothedRTT())
-		cwndScaled := oliaScale(uint64(o.congestionWindow), scale)
-		o.congestionWindow = utils.MinPacketNumber(o.maxTCPCongestionWindow, o.olia.CongestionWindowAfterAck(o.congestionWindow, rate, cwndScaled))
+		if CC_Flag != 1 {
+			o.getEpsilon()
+			rate := getRate(o.oliaSenders, o.rttStats.SmoothedRTT())
+			cwndScaled := oliaScale(uint64(o.congestionWindow), scale)
+			o.congestionWindow = utils.MinPacketNumber(o.maxTCPCongestionWindow, o.olia.CongestionWindowAfterAck(o.congestionWindow, rate, cwndScaled))
+		}
 	}
 }
 

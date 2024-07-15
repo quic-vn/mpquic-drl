@@ -93,6 +93,23 @@ type RewardPayloadSACMulti struct {
 	CountReward uint16        `json:"count_reward"`
 }
 
+type ActionJoinCC struct {
+	Action1 float64 `json:"action_1"`
+	Action2 float64 `json:"action_2"`
+	Action3 float64 `json:"action_3"`
+}
+
+// RewardPayload represents the payload structure for /update_reward endpoint
+type RewardPayloadSACMultiJoinCC struct {
+	State       StateSACMulti `json:"state"`
+	NextState   StateSACMulti `json:"next_state"`
+	Action      ActionJoinCC  `json:"action"`
+	Reward      float64       `json:"reward"`
+	Done        bool          `json:"done"`
+	ModelID     uint64        `json:"model_id"`
+	CountReward uint16        `json:"count_reward"`
+}
+
 func setModel(modelType string, modelID uint64) {
 	url := "http://localhost:8080/set_model"
 	data := map[string]string{
