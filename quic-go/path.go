@@ -11,6 +11,11 @@ import (
 	"github.com/lucas-clemente/quic-go/qerr"
 )
 
+var (
+	Txbitrate_interface0 uint16
+	Txbitrate_interface1 uint16
+)
+
 const (
 	minPathTimer = 10 * time.Millisecond
 	// XXX (QDC): To avoid idling...
@@ -136,7 +141,13 @@ func (p *path) GetAckFrame() *wire.AckFrame {
 	ack := p.receivedPacketHandler.GetAckFrame()
 	if ack != nil {
 		ack.PathID = p.pathID
+		if ack.PathID == 1 {
+			ack.RxBitrate = Txbitrate_interface0
+		} else {
+			ack.RxBitrate = Txbitrate_interface1
+		}
 	}
+	//SAC change function GetAckFrame, transfer rxBitrate
 
 	return ack
 }

@@ -29,7 +29,7 @@ SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC{id} -n 1 -m -clt {id}"
+CLIENT_CMD = "./clientMPQUIC{id} -n 500 -t 1 -m -clt {id}"
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
@@ -49,18 +49,18 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(500):
+    for i in range(1):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
 
-        # current_time = time.time()
-        # tmp_time = float(5*(i+1)) - float(current_time - global_variable)
-        # if tmp_time < 0:
-        #     break
-        # print(tmp_time)
-        # time.sleep(tmp_time)
-        time.sleep(float(id)/5.0)
+        current_time = time.time()
+        tmp_time = float(5*(i+1)) - float(current_time - global_variable)
+        if tmp_time < 0:
+            break
+        print(tmp_time)
+        time.sleep(tmp_time)
+        # time.sleep(float(id)/5.0)
         if global_flag == True:
             break
     global_flag = True
@@ -101,15 +101,29 @@ def topology(args, server_cmd, client_cmd):
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
     s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='45,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='40', position='55,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='55,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='1', position='45,50,0')
 
     stations = []
     for i in range(3, 3 + int(args.clt)):
-        x = i * 5
-        y = 50 - i * 3 * (-1)
-        sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
-        stations.append(sta)
+        if args.mdl == 'mobi':
+            sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i)
+            stations.append(sta)
+        elif args.mdl == 'none': #same place
+            x = 50
+            y = 70
+            sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
+            stations.append(sta)
+        elif args.mdl == 'dif1': 
+            x = i * 5
+            y = i * 5
+            sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
+            stations.append(sta)
+        elif args.mdl == 'dif2':
+            x = i * 5
+            y = 50 - i * 3 * (-1)
+            sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
+            stations.append(sta)
 
     c1 = net.addController('c1')
 
@@ -135,19 +149,19 @@ def topology(args, server_cmd, client_cmd):
         client1.cmd("ip route add default nexthop via 192.168.5.2 dev client-eth0 weight 1")
         client1.cmd("ip route add default via 192.168.5.2 table 1")
 
-    if args.mdl != 'none':
-        net.setMobilityModel(time=0, model=args.mdl, max_x=100, max_y=100, seed=20, min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200., alpha=0.5, variance=4.)
+    info("*** Starting network\n")
+    # if '-p' not in args:
+    #     net.plotGraph(max_x = 100, max_y = 100)
+
+    if args.mdl == 'mobi':
+        net.setMobilityModel(time=0, model='TruncatedLevyWalk', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
+
+    net.build()
 
     for i, sta in enumerate(stations, start=3):
         configClient(sta, i)
 
     h1.cmd('ip route add default via 10.0.0.2')
-
-    info("*** Starting network\n")
-    if '-p' not in args:
-        net.plotGraph(max_x = 100, max_y = 100)
-    
-    net.build()
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
@@ -167,15 +181,19 @@ def topology(args, server_cmd, client_cmd):
     else:
         varrate = float(args.owd) * float(args.var) / 100
         r0.cmd('tcdel r0-eth1 --all')
-        r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-        r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
-        ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-        ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+        r0.cmd('tcset r0-eth1 --rate 60Mbps --delay 10ms')
+        r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+        ap1.cmd('tcset ap1-eth2 --rate 60Mbps --delay 10ms')
+        ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+        # r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+        # r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+        # ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
+        # ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
 
     # print(args)
     print(server_cmd.format(num=args.clt))
     # print(client_cmd)
-
+    # CLI(net)
     h1.sendCmd(server_cmd.format(num=args.clt))
     time.sleep(10)
     global global_variable
@@ -208,7 +226,7 @@ def do_training(args):
     global with_background
     if args.sch == "sac":
         server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
-    elif args.sch == "sacmulti":
+    elif args.sch == "sacmulti" or args.sch == "sacrx":
         server_cmd = " ".join([SERVER_CMD_SACMULTI, CERTPATH, SCH % args.sch, ARGS, END])
     else:
         server_cmd = " ".join([SERVER_CMD_SACMULTIJOINCC, CERTPATH, SCH % args.sch, ARGS, END])

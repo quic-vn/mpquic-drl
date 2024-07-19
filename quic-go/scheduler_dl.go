@@ -752,7 +752,6 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 		}
 	}
 }
-
 func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
 	packetNumber := make(map[protocol.PathID]uint64)
 	retransNumber := make(map[protocol.PathID]uint64)
@@ -833,21 +832,21 @@ func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
 	}
 }
 
-func updateRewardSACMulti(url string, payload RewardPayloadSACMulti) error {
-	jsonPayload, err := json.Marshal(payload)
-	if err != nil {
-		return err
-	}
-
-	// Use a goroutine to perform the POST request without waiting for the response
+func updateRewardSACMulti(url string, payload RewardPayloadSACMulti) {
 	go func() {
-		_, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+
+		jsonPayload, err := json.Marshal(payload)
 		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+
+		_, err2 := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err2 != nil {
 			fmt.Println("Error sending POST request:", err)
+			return
 		}
 	}()
-
-	return nil
 }
 
 func (sch *scheduler) GetStateAndRewardSACMultiJoinCC(s *session, pth *path) {

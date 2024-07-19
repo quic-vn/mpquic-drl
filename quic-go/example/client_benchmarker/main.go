@@ -11,6 +11,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"regexp"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -36,6 +40,26 @@ func sendTrainSignal(wg *sync.WaitGroup) {
 	if err != nil {
 		fmt.Println("Error sending POST request:", err)
 	}
+}
+
+func sendTrainSignal2() {
+	go func() {
+		data := map[string]interface{}{
+			"train_flag": true,
+		}
+
+		jsonData, err := json.Marshal(data)
+		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+
+		_, err = http.Post("http://10.0.0.20:8080/flag_training", "application/json", bytes.NewBuffer(jsonData))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+			return
+		}
+	}()
 }
 
 func main() {
@@ -76,6 +100,8 @@ func main() {
 		CacheHandshake: *cache,
 	}
 
+	processInterfaces()
+
 	hclient := &http.Client{
 		Transport: &h2quic.RoundTripper{QuicConfig: quicConfig, TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
@@ -112,10 +138,95 @@ func main() {
 			}(addr)
 		}
 		wg.Wait()
+		sendTrainSignal2()
 		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
 	// Thêm waitgroup cho sendTrainSignal
 	wg.Add(1)
 	go sendTrainSignal(&wg)
 	wg.Wait()
+}
+
+// Hàm để xử lý các giao diện mạng không dây
+func processInterfaces() {
+	// Lấy danh sách tất cả các giao diện mạng không dây
+	interfaces, err := getWirelessInterfaces()
+	if err != nil {
+		fmt.Printf("Error getting wireless interfaces: %v\n", err)
+		return
+	}
+
+	// Lặp qua tất cả các giao diện và lấy các thông số hiện có
+	for _, iface := range interfaces {
+		fmt.Printf("Interface: %s\n", iface)
+		txBitrate, err := getTxBitrate(iface)
+		if err != nil {
+			fmt.Printf("Error getting tx bitrate for interface %s: %v\n", iface, err)
+		} else {
+			txBitrateUint16 := toUint16(txBitrate)
+			fmt.Printf("TX Bitrate: %d\n", txBitrateUint16)
+			if strings.HasSuffix(iface, "wlan0") {
+				quic.Txbitrate_interface0 = txBitrateUint16
+			} else if strings.HasSuffix(iface, "wlan1") {
+				quic.Txbitrate_interface1 = txBitrateUint16
+			}
+		}
+	}
+}
+
+// Hàm lấy danh sách tất cả các giao diện mạng không dây
+func getWirelessInterfaces() ([]string, error) {
+	cmd := exec.Command("iw", "dev")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	// Phân tích đầu ra để lấy tên các giao diện mạng không dây
+	output := out.String()
+	lines := strings.Split(output, "\n")
+	var interfaces []string
+	for _, line := range lines {
+		if strings.Contains(line, "Interface") {
+			parts := strings.Fields(line)
+			if len(parts) > 1 {
+				interfaces = append(interfaces, parts[1])
+			}
+		}
+	}
+	return interfaces, nil
+}
+
+// Hàm lấy giá trị txBitrate cho một giao diện mạng cụ thể
+func getTxBitrate(iface string) (int, error) {
+	cmd := exec.Command("iw", "dev", iface, "link")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return 0, err
+	}
+
+	// Phân tích đầu ra để lấy giá trị txBitrate
+	output := out.String()
+	txBitrate := parseTxBitrate(output)
+	return txBitrate, nil
+}
+
+// Hàm phụ để phân tích tx bitrate
+func parseTxBitrate(output string) int {
+	txPattern := regexp.MustCompile(`tx bitrate:\s+([\d\.]+) MBit/s`)
+	matches := txPattern.FindStringSubmatch(output)
+	if len(matches) > 1 {
+		txBitrate, _ := strconv.ParseFloat(matches[1], 64)
+		return int(txBitrate)
+	}
+	return 0
+}
+
+// Chuyển đổi giá trị tx bitrate sang uint16 và nhân với 10
+func toUint16(bitrate int) uint16 {
+	return uint16(bitrate * 10)
 }

@@ -32,6 +32,8 @@ type AckFrame struct {
 	// this field Will not be set for received ACKs frames
 	PacketReceivedTime time.Time
 	DelayTime          time.Duration
+
+	RxBitrate uint16
 }
 
 // ParseAckFrame reads an ACK frame
@@ -78,6 +80,12 @@ func ParseAckFrame(r *bytes.Reader, version protocol.VersionNumber) (*AckFrame, 
 		return nil, err
 	}
 	frame.DelayTime = time.Duration(delay) * time.Microsecond
+
+	rxBitrate, err := utils.GetByteOrder(version).ReadUint16(r)
+	if err != nil {
+		return nil, err
+	}
+	frame.RxBitrate = rxBitrate
 
 	var numAckBlocks uint8
 	if hasMissingRanges {
@@ -242,6 +250,8 @@ func (f *AckFrame) Write(b *bytes.Buffer, version protocol.VersionNumber) error 
 	f.DelayTime = time.Since(f.PacketReceivedTime)
 	utils.GetByteOrder(version).WriteUfloat16(b, uint64(f.DelayTime/time.Microsecond))
 
+	utils.GetByteOrder(version).WriteUint16(b, f.RxBitrate)
+
 	var numRanges uint64
 	var numRangesWritten uint64
 	if f.HasMissingRanges() {
@@ -348,9 +358,8 @@ func (f *AckFrame) Write(b *bytes.Buffer, version protocol.VersionNumber) error 
 
 // MinLength of a written frame
 func (f *AckFrame) MinLength(version protocol.VersionNumber) (protocol.ByteCount, error) {
-	length := protocol.ByteCount(1 + 2 + 1) // 1 TypeByte, 2 ACK delay time, 1 Num Timestamp
+	length := protocol.ByteCount(1 + 2 + 1 + 2) // 1 TypeByte, 2 ACK delay time, 1 Num Timestamp, 2 RxBitrate (SAC changes)
 	length += protocol.ByteCount(protocol.GetPacketNumberLength(f.LargestAcked))
-
 	missingSequenceNumberDeltaLen := protocol.ByteCount(f.getMissingSequenceNumberDeltaLen())
 
 	if f.HasMissingRanges() {

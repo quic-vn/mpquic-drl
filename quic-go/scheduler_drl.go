@@ -14,6 +14,11 @@ import (
 const banditDimension = 6
 const baseURL = "http://127.0.0.1:8080"
 
+var (
+	SV_Txbitrate_interface0 float64
+	SV_Txbitrate_interface1 float64
+)
+
 type StateDQN struct {
 	CWNDf float64 `json:"CWNDf"`
 	INPf  float64 `json:"INPf"`
@@ -88,6 +93,7 @@ type RewardPayloadSACMulti struct {
 	NextState   StateSACMulti `json:"next_state"`
 	Action      float64       `json:"action"`
 	Reward      float64       `json:"reward"`
+	Reward_tmp  float64       `json:"reward_tmp"`
 	Done        bool          `json:"done"`
 	ModelID     uint64        `json:"model_id"`
 	CountReward uint16        `json:"count_reward"`

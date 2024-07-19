@@ -232,7 +232,7 @@ func (sch *scheduler) setup() {
 		sch.count_Action = 0
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		setModel("sac", sch.model_id)
-	} else if sch.SchedulerName == "sacmulti" {
+	} else if sch.SchedulerName == "sacmulti" || sch.SchedulerName == "sacrx" {
 		sch.list_State_SACMulti = make(map[State]StateSACMulti)
 		sch.list_Action_SACMulti = make(map[State]float64)
 		sch.list_Reward_SACMulti = make(map[float64]RewardPayloadSACMulti)
@@ -242,6 +242,8 @@ func (sch *scheduler) setup() {
 		// fmt.Println("CheckllL: ", TMP_ModelID)
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		// setModel("sac", sch.model_id)
+		SV_Txbitrate_interface0 = 7
+		SV_Txbitrate_interface1 = 7
 	} else if sch.SchedulerName == "sacmultiJoinCC" {
 		sch.list_State_SACMulti = make(map[State]StateSACMulti)
 		sch.list_Action_SACMultiJoinCC = make(map[State]ActionJoinCC)
@@ -1625,6 +1627,8 @@ func (sch *scheduler) selectPath(s *session, hasRetransmission bool, hasStreamRe
 		return sch.selectPathSACMulti(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "sacmultiJoinCC" {
 		return sch.selectPathSACMultiJoinCC(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.SchedulerName == "sacrx" {
+		return sch.selectPathSACRx(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "qsat" {
 		return sch.selectPathQSAT(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	} else if sch.SchedulerName == "fuzzyqsat" {
@@ -1681,11 +1685,11 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 				}
 
-				if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
-					var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
-					multiclients.S2.Remove(connID)
-					// utils.Infof("countSession: %d", multiclients.NumSession)
-				}
+				// if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
+				// 	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+				// 	multiclients.S2.Remove(connID)
+				// 	// utils.Infof("countSession: %d", multiclients.NumSession)
+				// }
 				s.pathsLock.RUnlock()
 
 				//Write lin parameters for Peekaboo
@@ -2243,6 +2247,495 @@ func (sch *scheduler) getActionAsync(url string, state StateDQN, model_id uint64
 	}()
 }
 
+func (sch *scheduler) selectPathSACRx(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
+	if len(s.paths) <= 1 {
+		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
+			return nil
+		}
+		return s.paths[protocol.InitialPathID]
+	}
+
+	if len(s.paths) == 2 {
+		for pathID, path := range s.paths {
+			if pathID != protocol.InitialPathID {
+				utils.Debugf("Selecting path %d as unique path", pathID)
+				return path
+			}
+		}
+	}
+
+	// FIXME Only works at the beginning... Cope with new paths during the connection
+	if hasRetransmission && hasStreamRetransmission && fromPth.rttStats.SmoothedRTT() == 0 {
+		// Is there any other path with a lower number of packet sent?
+		currentQuota := sch.quotas[fromPth.pathID]
+		for pathID, pth := range s.paths {
+			if pathID == protocol.InitialPathID || pathID == fromPth.pathID {
+				continue
+			}
+			// The congestion window was checked when duplicating the packet
+			if sch.quotas[pathID] < currentQuota {
+				return pth
+			}
+		}
+	}
+
+	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	lRTT := make(map[protocol.PathID]time.Duration)
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+	packetNumber := make(map[protocol.PathID]uint64)
+	retransNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
+	goodPut := make(map[protocol.PathID]float64)
+
+	//Paths
+	var availablePaths []protocol.PathID
+	for pathID, pth := range s.paths {
+		packetNumber[pathID], retransNumber[pathID], lostNumber[pathID] = pth.sentPacketHandler.GetStatistics()
+		CWND[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+		INP[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+		sRTT[pathID] = pth.rttStats.SmoothedRTT()
+		lRTT[pathID] = pth.rttStats.LatestRTT()
+		goodPut[pathID] = NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
+		if pathID != protocol.InitialPathID {
+			availablePaths = append(availablePaths, pathID)
+			if firstPath == protocol.PathID(255) {
+				firstPath = pathID
+			} else {
+				if pathID < firstPath {
+					secondPath = firstPath
+					firstPath = pathID
+				} else {
+					secondPath = pathID
+				}
+			}
+		}
+
+	}
+
+	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+	if _, ok := multiclients.S2.Get(connID); ok {
+		var tmp_value multiclients.StateMulti
+		tmp_value.FRTT = lRTT[firstPath]
+		tmp_value.SRTT = lRTT[secondPath]
+		tmp_value.FCWND = CWND[firstPath]
+		tmp_value.SCWND = CWND[secondPath]
+		tmp_value.FInP = INP[firstPath]
+		tmp_value.SInP = INP[secondPath]
+		multiclients.S2.Set(connID, tmp_value)
+	}
+
+	var CWNDf_total, INPf_total, CWNDs_total, INPs_total protocol.ByteCount
+	var SRTTf_total, SRTTs_total time.Duration
+	CWNDf_total = 0
+	INPf_total = 0
+	CWNDs_total = 0
+	INPs_total = 0
+	SRTTf_total = 0
+	SRTTs_total = 0
+
+	CWNDf_mean := 0.0
+	INPf_mean := 0.0
+	CWNDs_mean := 0.0
+	INPs_mean := 0.0
+	// SRTTf_mean := 0.0
+	// SRTTs_mean := 0.0
+
+	if multiclients.S2.Count() > 1 {
+		ItemsList := multiclients.S2.Items()
+		for _, element := range ItemsList {
+			if foo, ok := element.(multiclients.StateMulti); ok {
+				CWNDf_total += foo.FCWND
+				INPf_total += foo.FInP
+				CWNDs_total += foo.SCWND
+				INPs_total += foo.FInP
+				SRTTf_total += foo.FRTT
+				SRTTs_total += foo.SRTT
+			}
+		}
+		CWNDf_mean = float64(CWNDf_total)
+		INPf_mean = float64(INPf_total)
+		CWNDs_mean = float64(CWNDs_total)
+		INPs_mean = float64(INPs_total)
+	}
+
+	stateData := StateSACMulti{
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
+
+		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf_all: SV_Txbitrate_interface0,
+		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs_all: SV_Txbitrate_interface1,
+		CNumber:   multiclients.S2.Count(),
+	}
+
+	if sch.current_Prob == 0 {
+		sch.current_Prob = 0.5
+		sch.getActionAsyncSACRx(baseURL+"/get_action", stateData, sch.model_id)
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.current_Prob == 1 {
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	}
+
+	// elapsed := time.Since(sch.time_Get_Action)
+
+	if sch.count_Action > uint16(stateData.CNumber)*3 {
+		// rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
+		// rewardPayload.NextState = stateData
+
+		reward := (goodPut[1] + goodPut[3]) / (SV_Txbitrate_interface0 + SV_Txbitrate_interface1)
+		tmp_Payload := RewardPayloadSACMulti{
+			State:     sch.current_State_SACMulti,
+			NextState: stateData,
+			Action:    sch.current_Prob,
+			Reward:    reward,
+			Done:      false,
+			ModelID:   sch.model_id,
+		}
+
+		sch.current_State_SACMulti = stateData
+		sch.getActionAsyncSACRx(baseURL+"/get_action", stateData, sch.model_id)
+
+		sch.count_Action = 0
+		sch.count_Reward = 0
+		sch.current_Reward = 0
+
+		// fmt.Println("PayLoad: ", sch.current_Prob, reward, SV_Txbitrate_interface0, SV_Txbitrate_interface1)
+		updateRewardSACMulti(baseURL+"/update_reward", tmp_Payload)
+	} else {
+		sch.count_Action += 1
+	}
+
+	action := 0
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
+
+	if sch.current_Prob > r.Float64() {
+		action = 1
+	}
+	if s.paths[availablePaths[action]].SendingAllowed() {
+		// sch.current_State_DQN = stateData
+		return s.paths[availablePaths[action]]
+	}
+
+	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
+		return s.paths[protocol.InitialPathID]
+	} else {
+		return nil
+	}
+
+}
+
+func (sch *scheduler) getActionAsyncSACRx(url string, state StateSACMulti, model_id uint64) {
+	go func() {
+		jsonPayload, err := json.Marshal(map[string]interface{}{
+			"state":    state,
+			"model_id": model_id,
+		})
+
+		// fmt.Println("GetAction: ", model_id)
+		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		var response ActionProbabilityResponse
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			fmt.Println("Error decoding response:", err)
+			return
+		}
+
+		if response.Error != "" {
+			fmt.Println("Server returned error:", response.Error)
+			return
+		}
+
+		// fmt.Println("Received action probability:", response.Probability[0])
+		sch.current_Prob = response.Probability[0]
+		sch.count_Action = 0
+		// rewardPayload := RewardPayloadSACMulti{
+		// 	State:       state,
+		// 	NextState:   state,
+		// 	Action:      sch.current_Prob,
+		// 	Reward:      0.0,
+		// 	Done:        false,
+		// 	ModelID:     sch.model_id,
+		// 	CountReward: 0,
+		// }
+		// var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		// multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+	}()
+}
+
+func (sch *scheduler) selectPathSACMultiJoinCC(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
+	if len(s.paths) <= 1 {
+		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
+			return nil
+		}
+		return s.paths[protocol.InitialPathID]
+	}
+
+	if len(s.paths) == 2 {
+		for pathID, path := range s.paths {
+			if pathID != protocol.InitialPathID {
+				utils.Debugf("Selecting path %d as unique path", pathID)
+				return path
+			}
+		}
+	}
+
+	// FIXME Only works at the beginning... Cope with new paths during the connection
+	if hasRetransmission && hasStreamRetransmission && fromPth.rttStats.SmoothedRTT() == 0 {
+		// Is there any other path with a lower number of packet sent?
+		currentQuota := sch.quotas[fromPth.pathID]
+		for pathID, pth := range s.paths {
+			if pathID == protocol.InitialPathID || pathID == fromPth.pathID {
+				continue
+			}
+			// The congestion window was checked when duplicating the packet
+			if sch.quotas[pathID] < currentQuota {
+				return pth
+			}
+		}
+	}
+
+	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
+	sRTT := make(map[protocol.PathID]time.Duration)
+	lRTT := make(map[protocol.PathID]time.Duration)
+	CWND := make(map[protocol.PathID]protocol.ByteCount)
+	INP := make(map[protocol.PathID]protocol.ByteCount)
+
+	//Paths
+	var availablePaths []protocol.PathID
+	for pathID, pth := range s.paths {
+		CWND[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+		INP[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+		sRTT[pathID] = pth.rttStats.SmoothedRTT()
+		lRTT[pathID] = pth.rttStats.LatestRTT()
+		if pathID != protocol.InitialPathID {
+			availablePaths = append(availablePaths, pathID)
+			if firstPath == protocol.PathID(255) {
+				firstPath = pathID
+			} else {
+				if pathID < firstPath {
+					secondPath = firstPath
+					firstPath = pathID
+				} else {
+					secondPath = pathID
+				}
+			}
+		}
+
+	}
+
+	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+	if _, ok := multiclients.S2.Get(connID); ok {
+		var tmp_value multiclients.StateMulti
+		tmp_value.FRTT = lRTT[firstPath]
+		tmp_value.SRTT = lRTT[secondPath]
+		tmp_value.FCWND = CWND[firstPath]
+		tmp_value.SCWND = CWND[secondPath]
+		tmp_value.FInP = INP[firstPath]
+		tmp_value.SInP = INP[secondPath]
+		multiclients.S2.Set(connID, tmp_value)
+	}
+
+	var CWNDf_total, INPf_total, CWNDs_total, INPs_total protocol.ByteCount
+	var SRTTf_total, SRTTs_total time.Duration
+	CWNDf_total = 0
+	INPf_total = 0
+	CWNDs_total = 0
+	INPs_total = 0
+	SRTTf_total = 0
+	SRTTs_total = 0
+
+	CWNDf_mean := 0.0
+	INPf_mean := 0.0
+	CWNDs_mean := 0.0
+	INPs_mean := 0.0
+	SRTTf_mean := 0.0
+	SRTTs_mean := 0.0
+
+	if multiclients.S2.Count() > 1 {
+		ItemsList := multiclients.S2.Items()
+		for _, element := range ItemsList {
+			if foo, ok := element.(multiclients.StateMulti); ok {
+				CWNDf_total += foo.FCWND
+				INPf_total += foo.FInP
+				CWNDs_total += foo.SCWND
+				INPs_total += foo.FInP
+				SRTTf_total += foo.FRTT
+				SRTTs_total += foo.SRTT
+			}
+		}
+		// CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
+		// INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
+		// CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
+		// INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
+		// SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
+		// SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
+
+		CWNDf_mean = float64(CWNDf_total)
+		INPf_mean = float64(INPf_total)
+		CWNDs_mean = float64(CWNDs_total)
+		INPs_mean = float64(INPs_total)
+		SRTTf_mean = NormalizeTimes(SRTTf_total)
+		SRTTs_mean = NormalizeTimes(SRTTs_total)
+	}
+
+	stateData := StateSACMulti{
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
+
+		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTf_all: SRTTf_mean / 100.0 / 1000000.0,
+		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
+		SRTTs_all: SRTTs_mean / 100.0 / 1000000.0,
+
+		CNumber: multiclients.S2.Count(),
+	}
+
+	if sch.current_Prob_JoinCC.Action1 == 0 {
+		sch.current_Prob_JoinCC.Action1 = 1
+		sch.current_Prob_JoinCC.Action2 = 2
+		sch.current_Prob_JoinCC.Action3 = 2
+		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
+		// rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		// fmt.Println("State: ", stateData)
+
+		sch.getActionAsyncMultiJoinCC(s, baseURL+"/get_action", stateData, sch.model_id)
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	} else if sch.current_Prob_JoinCC.Action1 == 1 {
+		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
+	}
+
+	if sch.count_Action > 10 {
+		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
+		rewardPayload.NextState = stateData
+		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
+		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
+		if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
+			rewardPayload, ok := tmp_Reload.(RewardPayloadSACMulti)
+			if !ok {
+				fmt.Println("Type assertion failed")
+				return nil
+			}
+			rewardPayload.NextState = stateData
+			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+			// fmt.Println("State: ", stateData, rewardPayload)
+		}
+
+		sch.current_State_SACMulti = stateData
+		sch.getActionAsyncMultiJoinCC(s, baseURL+"/get_action", stateData, sch.model_id)
+
+		sch.count_Action = 0
+		sch.count_Reward = 0
+		sch.current_Reward = 0
+		sch.time_Get_Action = time.Now()
+	} else {
+		sch.count_Action += 1
+	}
+
+	action := 0
+	src := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(src)
+
+	if sch.current_Prob_JoinCC.Action1 > r.Float64() {
+		action = 1
+	}
+	if s.paths[availablePaths[action]].SendingAllowed() {
+		// sch.current_State_DQN = stateData
+		return s.paths[availablePaths[action]]
+	}
+
+	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
+		return s.paths[protocol.InitialPathID]
+	} else {
+		return nil
+	}
+
+}
+
+func (sch *scheduler) getActionAsyncMultiJoinCC(s *session, url string, state StateSACMulti, model_id uint64) {
+	go func() {
+		jsonPayload, err := json.Marshal(map[string]interface{}{
+			"state":    state,
+			"model_id": model_id,
+		})
+
+		// fmt.Println("GetAction: ", model_id)
+		if err != nil {
+			fmt.Println("Error encoding JSON:", err)
+			return
+		}
+
+		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			fmt.Println("Error sending POST request:", err)
+			return
+		}
+		defer resp.Body.Close()
+
+		var response ActionProbabilityResponse
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		if err != nil {
+			fmt.Println("Error decoding response:", err)
+			return
+		}
+
+		if response.Error != "" {
+			fmt.Println("Server returned error:", response.Error)
+			return
+		}
+
+		fmt.Println("Received action probability:", response.Probability)
+		sch.current_Prob_JoinCC.Action1 = response.Probability[0]
+		sch.current_Prob_JoinCC.Action2 = response.Probability[1]
+		sch.current_Prob_JoinCC.Action3 = response.Probability[2]
+		rewardPayload := RewardPayloadSACMultiJoinCC{
+			State:       state,
+			NextState:   state,
+			Action:      sch.current_Prob_JoinCC,
+			Reward:      0.0,
+			Done:        false,
+			ModelID:     sch.model_id,
+			CountReward: 0,
+		}
+		var connID string = strconv.FormatFloat(sch.current_Prob_JoinCC.Action1, 'f', 5, 64) + strconv.FormatFloat(sch.current_Prob_JoinCC.Action2, 'f', 5, 64) + strconv.FormatFloat(sch.current_Prob_JoinCC.Action3, 'f', 5, 64)
+		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		for pathID, pth := range s.paths {
+			if pathID == 1 {
+				pth.sentPacketHandler.SignalChangeCWWNDSAC(response.Probability[1])
+			} else if pathID == 3 {
+				pth.sentPacketHandler.SignalChangeCWWNDSAC(response.Probability[2])
+			}
+		}
+	}()
+}
+
 func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
 	if len(s.paths) <= 1 {
 		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
@@ -2485,261 +2978,5 @@ func (sch *scheduler) getActionAsyncMulti(url string, state StateSACMulti, model
 		}
 		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
 		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
-	}()
-}
-
-func (sch *scheduler) selectPathSACMultiJoinCC(s *session, hasRetransmission bool, hasStreamRetransmission bool, fromPth *path) *path {
-	if len(s.paths) <= 1 {
-		if !hasRetransmission && !s.paths[protocol.InitialPathID].SendingAllowed() {
-			return nil
-		}
-		return s.paths[protocol.InitialPathID]
-	}
-
-	if len(s.paths) == 2 {
-		for pathID, path := range s.paths {
-			if pathID != protocol.InitialPathID {
-				utils.Debugf("Selecting path %d as unique path", pathID)
-				return path
-			}
-		}
-	}
-
-	// FIXME Only works at the beginning... Cope with new paths during the connection
-	if hasRetransmission && hasStreamRetransmission && fromPth.rttStats.SmoothedRTT() == 0 {
-		// Is there any other path with a lower number of packet sent?
-		currentQuota := sch.quotas[fromPth.pathID]
-		for pathID, pth := range s.paths {
-			if pathID == protocol.InitialPathID || pathID == fromPth.pathID {
-				continue
-			}
-			// The congestion window was checked when duplicating the packet
-			if sch.quotas[pathID] < currentQuota {
-				return pth
-			}
-		}
-	}
-
-	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
-	sRTT := make(map[protocol.PathID]time.Duration)
-	lRTT := make(map[protocol.PathID]time.Duration)
-	CWND := make(map[protocol.PathID]protocol.ByteCount)
-	INP := make(map[protocol.PathID]protocol.ByteCount)
-
-	//Paths
-	var availablePaths []protocol.PathID
-	for pathID, pth := range s.paths {
-		CWND[pathID] = pth.sentPacketHandler.GetCongestionWindow()
-		INP[pathID] = pth.sentPacketHandler.GetBytesInFlight()
-		sRTT[pathID] = pth.rttStats.SmoothedRTT()
-		lRTT[pathID] = pth.rttStats.LatestRTT()
-		if pathID != protocol.InitialPathID {
-			availablePaths = append(availablePaths, pathID)
-			if firstPath == protocol.PathID(255) {
-				firstPath = pathID
-			} else {
-				if pathID < firstPath {
-					secondPath = firstPath
-					firstPath = pathID
-				} else {
-					secondPath = pathID
-				}
-			}
-		}
-
-	}
-
-	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
-	if _, ok := multiclients.S2.Get(connID); ok {
-		var tmp_value multiclients.StateMulti
-		tmp_value.FRTT = lRTT[firstPath]
-		tmp_value.SRTT = lRTT[secondPath]
-		tmp_value.FCWND = CWND[firstPath]
-		tmp_value.SCWND = CWND[secondPath]
-		tmp_value.FInP = INP[firstPath]
-		tmp_value.SInP = INP[secondPath]
-		multiclients.S2.Set(connID, tmp_value)
-	}
-
-	var CWNDf_total, INPf_total, CWNDs_total, INPs_total protocol.ByteCount
-	var SRTTf_total, SRTTs_total time.Duration
-	CWNDf_total = 0
-	INPf_total = 0
-	CWNDs_total = 0
-	INPs_total = 0
-	SRTTf_total = 0
-	SRTTs_total = 0
-
-	CWNDf_mean := 0.0
-	INPf_mean := 0.0
-	CWNDs_mean := 0.0
-	INPs_mean := 0.0
-	SRTTf_mean := 0.0
-	SRTTs_mean := 0.0
-
-	if multiclients.S2.Count() > 1 {
-		ItemsList := multiclients.S2.Items()
-		for _, element := range ItemsList {
-			if foo, ok := element.(multiclients.StateMulti); ok {
-				CWNDf_total += foo.FCWND
-				INPf_total += foo.FInP
-				CWNDs_total += foo.SCWND
-				INPs_total += foo.FInP
-				SRTTf_total += foo.FRTT
-				SRTTs_total += foo.SRTT
-			}
-		}
-		// CWNDf_mean = (float64(CWNDf_total) - float64(CWND[firstPath])) / float64(multiclients.S2.Count()-1)
-		// INPf_mean = (float64(INPf_total) - float64(INP[firstPath])) / float64(multiclients.S2.Count()-1)
-		// CWNDs_mean = (float64(CWNDs_total) - float64(CWND[secondPath])) / float64(multiclients.S2.Count()-1)
-		// INPs_mean = (float64(INPs_total) - float64(INP[secondPath])) / float64(multiclients.S2.Count()-1)
-		// SRTTf_mean = (NormalizeTimes(SRTTf_total) - NormalizeTimes(sRTT[firstPath])) / float64(multiclients.S2.Count()-1)
-		// SRTTs_mean = (NormalizeTimes(SRTTs_total) - NormalizeTimes(sRTT[secondPath])) / float64(multiclients.S2.Count()-1)
-
-		CWNDf_mean = float64(CWNDf_total)
-		INPf_mean = float64(INPf_total)
-		CWNDs_mean = float64(CWNDs_total)
-		INPs_mean = float64(INPs_total)
-		SRTTf_mean = NormalizeTimes(SRTTf_total)
-		SRTTs_mean = NormalizeTimes(SRTTs_total)
-	}
-
-	stateData := StateSACMulti{
-		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
-		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
-
-		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf_all: SRTTf_mean / 100.0 / 1000000.0,
-		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs_all: SRTTs_mean / 100.0 / 1000000.0,
-
-		CNumber: multiclients.S2.Count(),
-	}
-
-	if sch.current_Prob_JoinCC.Action1 == 0 {
-		sch.current_Prob_JoinCC.Action1 = 1
-		sch.current_Prob_JoinCC.Action2 = 2
-		sch.current_Prob_JoinCC.Action3 = 2
-		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
-		// rewardPayload.NextState = stateData
-		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
-		// fmt.Println("State: ", stateData)
-
-		sch.getActionAsyncMultiJoinCC(s, baseURL+"/get_action", stateData, sch.model_id)
-		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
-	} else if sch.current_Prob_JoinCC.Action1 == 1 {
-		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
-	}
-
-	// elapsed := time.Since(sch.time_Get_Action)
-
-	if sch.count_Action > 10 {
-		// fmt.Println("GETACTION: ", sch.count_Action)
-		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
-		rewardPayload.NextState = stateData
-		// sch.list_Reward_DQN[sch.current_Prob] = rewardPayload
-		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
-		if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
-			rewardPayload, ok := tmp_Reload.(RewardPayloadSACMulti)
-			if !ok {
-				fmt.Println("Type assertion failed")
-				return nil
-			}
-			rewardPayload.NextState = stateData
-			multiclients.List_Reward_DQN.Set(connID, rewardPayload)
-			// fmt.Println("State: ", stateData, rewardPayload)
-		}
-
-		sch.current_State_SACMulti = stateData
-		sch.getActionAsyncMultiJoinCC(s, baseURL+"/get_action", stateData, sch.model_id)
-
-		sch.count_Action = 0
-		sch.count_Reward = 0
-		sch.current_Reward = 0
-		sch.time_Get_Action = time.Now()
-	} else {
-		sch.count_Action += 1
-	}
-
-	action := 0
-	src := rand.NewSource(time.Now().UnixNano())
-	r := rand.New(src)
-
-	if sch.current_Prob_JoinCC.Action1 > r.Float64() {
-		action = 1
-	}
-	if s.paths[availablePaths[action]].SendingAllowed() {
-		// sch.current_State_DQN = stateData
-		return s.paths[availablePaths[action]]
-	}
-
-	if hasRetransmission && s.paths[protocol.InitialPathID].SendingAllowed() {
-		return s.paths[protocol.InitialPathID]
-	} else {
-		return nil
-	}
-
-}
-
-func (sch *scheduler) getActionAsyncMultiJoinCC(s *session, url string, state StateSACMulti, model_id uint64) {
-	go func() {
-		jsonPayload, err := json.Marshal(map[string]interface{}{
-			"state":    state,
-			"model_id": model_id,
-		})
-
-		// fmt.Println("GetAction: ", model_id)
-		if err != nil {
-			fmt.Println("Error encoding JSON:", err)
-			return
-		}
-
-		resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonPayload))
-		if err != nil {
-			fmt.Println("Error sending POST request:", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		var response ActionProbabilityResponse
-		err = json.NewDecoder(resp.Body).Decode(&response)
-		if err != nil {
-			fmt.Println("Error decoding response:", err)
-			return
-		}
-
-		if response.Error != "" {
-			fmt.Println("Server returned error:", response.Error)
-			return
-		}
-
-		fmt.Println("Received action probability:", response.Probability)
-		sch.current_Prob_JoinCC.Action1 = response.Probability[0]
-		sch.current_Prob_JoinCC.Action2 = response.Probability[1]
-		sch.current_Prob_JoinCC.Action3 = response.Probability[2]
-		rewardPayload := RewardPayloadSACMultiJoinCC{
-			State:       state,
-			NextState:   state,
-			Action:      sch.current_Prob_JoinCC,
-			Reward:      0.0,
-			Done:        false,
-			ModelID:     sch.model_id,
-			CountReward: 0,
-		}
-		var connID string = strconv.FormatFloat(sch.current_Prob_JoinCC.Action1, 'f', 5, 64) + strconv.FormatFloat(sch.current_Prob_JoinCC.Action2, 'f', 5, 64) + strconv.FormatFloat(sch.current_Prob_JoinCC.Action3, 'f', 5, 64)
-		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
-		for pathID, pth := range s.paths {
-			if pathID == 1 {
-				pth.sentPacketHandler.SignalChangeCWWNDSAC(response.Probability[1])
-			} else if pathID == 3 {
-				pth.sentPacketHandler.SignalChangeCWWNDSAC(response.Probability[2])
-			}
-		}
 	}()
 }

@@ -13,7 +13,7 @@ const NonForwardSecurePacketSizeReduction = 50
 // DefaultMaxCongestionWindow is the default for the max congestion window
 // XXX (QDC): with large bandwidth networks, this can be a limiting factor
 // Seems reasonable, around 3.5MB in flight
-const DefaultMaxCongestionWindow = 2500
+const DefaultMaxCongestionWindow = 5000
 
 // InitialCongestionWindow is the initial congestion window in QUIC packets
 const InitialCongestionWindow = 32
@@ -40,11 +40,11 @@ const ReceiveConnectionFlowControlWindow = (1 << 10) * 48 // 48 kB
 
 // DefaultMaxReceiveStreamFlowControlWindowServer is the default maximum stream-level flow control window for receiving data, for the server
 // This is the value that Google servers are using
-const DefaultMaxReceiveStreamFlowControlWindowServer = 1 * (1 << 20) // 1 MB
+const DefaultMaxReceiveStreamFlowControlWindowServer = 2 * (1 << 20) // 1 MB
 
 // DefaultMaxReceiveConnectionFlowControlWindowServer is the default connection-level flow control window for receiving data, for the server
 // This is the value that Google servers are using
-const DefaultMaxReceiveConnectionFlowControlWindowServer = 1.5 * (1 << 20) // 1.5 MB
+const DefaultMaxReceiveConnectionFlowControlWindowServer = 3 * (1 << 20) // 1.5 MB
 
 // DefaultMaxReceiveStreamFlowControlWindowClient is the default maximum stream-level flow control window for receiving data, for the client
 // This is the value that Chromium is using

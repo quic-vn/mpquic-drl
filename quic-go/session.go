@@ -644,6 +644,7 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	_, _, oldLost := pth.sentPacketHandler.GetStatistics()
 	err := pth.sentPacketHandler.ReceivedAck(frame, pth.lastRcvdPacketNumber, pth.lastNetworkActivityTime)
 	_, _, newLost := pth.sentPacketHandler.GetStatistics()
+	// fmt.Println("Check frame rxBitrate: ", frame.RxBitrate)
 	if err == nil && pth.rttStats.SmoothedRTT() > s.rttStats.SmoothedRTT() {
 		// Update the session RTT, which comes to take the max RTT on all paths
 		s.rttStats.UpdateSessionRTT(pth.rttStats.SmoothedRTT())
@@ -659,6 +660,13 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmulti" {
 		s.scheduler.GetStateAndRewardSACMulti(s, pth)
+	}
+	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacrx" {
+		if pth.pathID == 1 {
+			SV_Txbitrate_interface0 = float64(frame.RxBitrate) / 80.0
+		} else {
+			SV_Txbitrate_interface1 = float64(frame.RxBitrate) / 80.0
+		}
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmultiJoinCC" {
 		s.scheduler.GetStateAndRewardSACMultiJoinCC(s, pth)
