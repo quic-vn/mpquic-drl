@@ -2386,8 +2386,11 @@ func (sch *scheduler) selectPathSACRx(s *session, hasRetransmission bool, hasStr
 	}
 
 	// elapsed := time.Since(sch.time_Get_Action)
-
-	if sch.count_Action > uint16(stateData.CNumber)*3 {
+	elapsed := uint16(stateData.CNumber) * 3
+	if elapsed < 9 {
+		elapsed = 9
+	}
+	if sch.count_Action > elapsed {
 		// rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
 		// rewardPayload.NextState = stateData
 
@@ -2885,7 +2888,11 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 
 	// elapsed := time.Since(sch.time_Get_Action)
 
-	if sch.count_Action > 10 {
+	elapsed := uint16(stateData.CNumber) * 3
+	if elapsed < 9 {
+		elapsed = 9
+	}
+	if sch.count_Action > elapsed {
 		// fmt.Println("PayLoad: ", rewardPayload)
 		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
 		rewardPayload.NextState = stateData
@@ -2978,5 +2985,6 @@ func (sch *scheduler) getActionAsyncMulti(url string, state StateSACMulti, model
 		}
 		var connID string = strconv.FormatFloat(sch.current_Prob, 'E', -1, 64)
 		multiclients.List_Reward_DQN.Set(connID, rewardPayload)
+		sch.count_Action = 0
 	}()
 }

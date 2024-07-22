@@ -101,9 +101,9 @@ def topology(args, server_cmd, client_cmd):
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
     s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='55,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='1', position='45,50,0')
-
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='6', position='55,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='36', position='45,50,0')
+    #ax2: channel 1; g,n2: channel 1-6; a: channel 36-40
     stations = []
     for i in range(3, 3 + int(args.clt)):
         if args.mdl == 'mobi':
@@ -181,9 +181,9 @@ def topology(args, server_cmd, client_cmd):
     else:
         varrate = float(args.owd) * float(args.var) / 100
         r0.cmd('tcdel r0-eth1 --all')
-        r0.cmd('tcset r0-eth1 --rate 60Mbps --delay 10ms')
+        r0.cmd('tcset r0-eth1 --rate 100Mbps --delay 10ms')
         r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-        ap1.cmd('tcset ap1-eth2 --rate 60Mbps --delay 10ms')
+        ap1.cmd('tcset ap1-eth2 --rate 100Mbps --delay 10ms')
         ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
         # r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
         # r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))

@@ -139,12 +139,13 @@ func main() {
 		}
 		wg.Wait()
 		sendTrainSignal2()
+		processInterfaces()
 		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
 	// Thêm waitgroup cho sendTrainSignal
-	wg.Add(1)
-	go sendTrainSignal(&wg)
-	wg.Wait()
+	// wg.Add(1)
+	// go sendTrainSignal(&wg)
+	// wg.Wait()
 }
 
 // Hàm để xử lý các giao diện mạng không dây

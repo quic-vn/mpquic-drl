@@ -54,7 +54,7 @@ def flag_training():
         # Increment the training request counter
         training_request_count += 1
         print(f"Flag training called: count={training_request_count}")  # Log the training request count
-        if training_request_count >= number_count*3:
+        if training_request_count >= number_count*2:
             executor.submit(train_model)
             training_request_count = 0  # Reset the counter after training
             return jsonify({'status': 'Training started for all models'}), 200

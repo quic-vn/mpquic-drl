@@ -17,17 +17,17 @@ do
     cp "clientMPQUIC" "clientMPQUIC$i"
 done
 
-declare -a mdlArr=("none" "dif1" "dif2" "mobi") #("none" "dif1" "dif2" "mobi")
-declare -a numArr=("1" "4" "8") #("1" "4" "8")
+declare -a mdlArr=("dif1") #("none" "dif1" "dif2" "mobi")
+declare -a numArr=("8" "4") #("1" "4" "8")
 declare -a filArr=("1MB") 
 declare -a bgrArr=("0")
 declare -a frqArr=("0")
-declare -a bwdArr=("60" "20") #bandwidth
-declare -a owdArr=("10") #one-way delay
+declare -a bwdArr=("100" "30") #bandwidth
+declare -a owdArr=("10" "20") #one-way delay
 declare -a varArr=("0") #variation delay
 declare -a losArr=("0") #pkt loss 
 # declare -a schArr=("random" "rtt" "peek" "multiclients" "sacrx" "sacmulti" "sacmultiJoinCC")
-declare -a schArr=("random" "rtt" "sacrx" "sacmulti")
+declare -a schArr=("sacrx" "sacmulti" "random" "rtt")
 
 for mdl in "${mdlArr[@]}"
 do 
