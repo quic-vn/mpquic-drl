@@ -1,4 +1,4 @@
 simulationFileServer/output/*
 simulation/output/*
-simulationFileServer/clientMPQUI*
-simulationFileServer/serverMPQUI*
+simulationFileServer/clientMP*
+simulationFileServer/serverMP*

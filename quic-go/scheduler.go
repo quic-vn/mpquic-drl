@@ -2393,8 +2393,29 @@ func (sch *scheduler) selectPathSACRx(s *session, hasRetransmission bool, hasStr
 	if sch.count_Action > elapsed {
 		// rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
 		// rewardPayload.NextState = stateData
+		// reward := (goodPut[1] + goodPut[3]) / (SV_Txbitrate_interface0 + SV_Txbitrate_interface1)
+		max_throughput := 5.0
+		min_signal := -90.0
+		max_signal := -30.0
+		throughput_0 := 0.0
+		throughput_1 := 0.0
 
-		reward := (goodPut[1] + goodPut[3]) / (SV_Txbitrate_interface0 + SV_Txbitrate_interface1)
+		if SV_Txbitrate_interface0 <= min_signal {
+			throughput_0 = 0
+		} else if SV_Txbitrate_interface0 >= min_signal {
+			throughput_0 = max_throughput
+		} else {
+			throughput_0 = max_throughput * (SV_Txbitrate_interface0 - min_signal) / (max_signal - min_signal)
+		}
+		if SV_Txbitrate_interface1 <= min_signal {
+			throughput_1 = 0
+		} else if SV_Txbitrate_interface1 >= min_signal {
+			throughput_1 = max_throughput
+		} else {
+			throughput_1 = max_throughput * (SV_Txbitrate_interface1 - min_signal) / (max_signal - min_signal)
+		}
+		reward := (goodPut[1] + goodPut[3]) / (throughput_0 + throughput_1)
+		// fmt.Println("Reward: ", reward, throughput_0, throughput_1, SV_Txbitrate_interface0, SV_Txbitrate_interface1)
 		tmp_Payload := RewardPayloadSACMulti{
 			State:     sch.current_State_SACMulti,
 			NextState: stateData,

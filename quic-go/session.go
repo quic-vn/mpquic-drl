@@ -663,9 +663,11 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacrx" {
 		if pth.pathID == 1 {
-			SV_Txbitrate_interface0 = float64(frame.RxBitrate) / 80.0
+			// SV_Txbitrate_interface0 = float64(frame.RxBitrate) / 80.0
+			SV_Txbitrate_interface0 = float64(frame.RxBitrate) * (-1)
 		} else {
-			SV_Txbitrate_interface1 = float64(frame.RxBitrate) / 80.0
+			// SV_Txbitrate_interface1 = float64(frame.RxBitrate) / 80.0
+			SV_Txbitrate_interface1 = float64(frame.RxBitrate) * (-1)
 		}
 	}
 	if err == nil && pth.pathID != protocol.InitialPathID && s.scheduler.SchedulerName == "sacmultiJoinCC" {

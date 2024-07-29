@@ -139,7 +139,7 @@ func main() {
 		}
 		wg.Wait()
 		sendTrainSignal2()
-		processInterfaces()
+		// processInterfaces()
 		time.Sleep(time.Duration(*sleeptime) * time.Second)
 	}
 	// Thêm waitgroup cho sendTrainSignal
@@ -160,17 +160,31 @@ func processInterfaces() {
 	// Lặp qua tất cả các giao diện và lấy các thông số hiện có
 	for _, iface := range interfaces {
 		fmt.Printf("Interface: %s\n", iface)
-		txBitrate, err := getTxBitrate(iface)
+
+		// txBitrate, err := getTxBitrate(iface)
+		// if err != nil {
+		// 	fmt.Printf("Error getting tx bitrate for interface %s: %v\n", iface, err)
+		// } else {
+		// 	txBitrateUint16 := toUint16(txBitrate)
+		// 	fmt.Printf("TX Bitrate: %d\n", txBitrateUint16)
+		// 	if strings.HasSuffix(iface, "wlan0") {
+		// 		quic.Txbitrate_interface0 = txBitrateUint16
+		// 	} else if strings.HasSuffix(iface, "wlan1") {
+		// 		quic.Txbitrate_interface1 = txBitrateUint16
+		// 	}
+		// }
+
+		signal, err := getSignal(iface)
 		if err != nil {
-			fmt.Printf("Error getting tx bitrate for interface %s: %v\n", iface, err)
+			fmt.Printf("Error getting signal for interface %s: %v\n", iface, err)
 		} else {
-			txBitrateUint16 := toUint16(txBitrate)
-			fmt.Printf("TX Bitrate: %d\n", txBitrateUint16)
+			fmt.Printf("Signal: %d dBm\n", signal)
 			if strings.HasSuffix(iface, "wlan0") {
-				quic.Txbitrate_interface0 = txBitrateUint16
+				quic.Txbitrate_interface0 = uint16(signal * (-1))
 			} else if strings.HasSuffix(iface, "wlan1") {
-				quic.Txbitrate_interface1 = txBitrateUint16
+				quic.Txbitrate_interface1 = uint16(signal * (-1))
 			}
+			// Bạn có thể lưu giá trị signal vào các biến trong package quic nếu cần thiết
 		}
 	}
 }
@@ -230,4 +244,31 @@ func parseTxBitrate(output string) int {
 // Chuyển đổi giá trị tx bitrate sang uint16 và nhân với 10
 func toUint16(bitrate int) uint16 {
 	return uint16(bitrate * 10)
+}
+
+// Hàm lấy giá trị signal cho một giao diện mạng cụ thể
+func getSignal(iface string) (int, error) {
+	cmd := exec.Command("iw", "dev", iface, "link")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return 0, err
+	}
+
+	// Phân tích đầu ra để lấy giá trị signal
+	output := out.String()
+	signal := parseSignal(output)
+	return signal, nil
+}
+
+// Hàm phụ để phân tích giá trị signal
+func parseSignal(output string) int {
+	signalPattern := regexp.MustCompile(`signal:\s(-?\d+) dBm`)
+	matches := signalPattern.FindStringSubmatch(output)
+	if len(matches) > 1 {
+		signal, _ := strconv.Atoi(matches[1])
+		return signal
+	}
+	return 0 // hoặc một giá trị phù hợp khác khi không tìm thấy signal
 }

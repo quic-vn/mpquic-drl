@@ -29,7 +29,7 @@ SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC{id} -n 500 -t 1 -m -clt {id}"
+CLIENT_CMD = "./clientMPQUIC{id} -n 10 -t 0 -m -clt {id}"
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
@@ -49,18 +49,18 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(1):
+    for i in range(10):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
 
-        current_time = time.time()
-        tmp_time = float(5*(i+1)) - float(current_time - global_variable)
-        if tmp_time < 0:
-            break
-        print(tmp_time)
-        time.sleep(tmp_time)
-        # time.sleep(float(id)/5.0)
+        # current_time = time.time()
+        # tmp_time = float(5*(i+1)) - float(current_time - global_variable)
+        # if tmp_time < 0:
+        #     break
+        # print(tmp_time)
+        # time.sleep(tmp_time)
+        time.sleep(1)
         if global_flag == True:
             break
     global_flag = True
@@ -101,7 +101,7 @@ def topology(args, server_cmd, client_cmd):
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
     s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='6', position='55,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='40', position='55,50,0')
     ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='36', position='45,50,0')
     #ax2: channel 1; g,n2: channel 1-6; a: channel 36-40
     stations = []
