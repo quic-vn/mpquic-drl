@@ -29,7 +29,7 @@ SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC{id} -n 10 -t 0 -m -clt {id}"
+CLIENT_CMD = "./clientMPQUIC{id} -n 3000 -t 1000 -m -clt {id}"
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
 
@@ -49,7 +49,7 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(10):
+    for i in range(1):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
@@ -60,7 +60,7 @@ def runClient(station, id, client_cmd):
         #     break
         # print(tmp_time)
         # time.sleep(tmp_time)
-        time.sleep(1)
+        time.sleep(2)
         if global_flag == True:
             break
     global_flag = True
@@ -101,8 +101,8 @@ def topology(args, server_cmd, client_cmd):
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
     s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='40', position='55,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='36', position='45,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='55,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='40', position='45,50,0')
     #ax2: channel 1; g,n2: channel 1-6; a: channel 36-40
     stations = []
     for i in range(3, 3 + int(args.clt)):
@@ -179,16 +179,21 @@ def topology(args, server_cmd, client_cmd):
         bg_thread.daemon = True
         bg_thread.start()
     else:
-        varrate = float(args.owd) * float(args.var) / 100
-        r0.cmd('tcdel r0-eth1 --all')
-        r0.cmd('tcset r0-eth1 --rate 100Mbps --delay 10ms')
-        r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-        ap1.cmd('tcset ap1-eth2 --rate 100Mbps --delay 10ms')
-        ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-        # r0.cmd('tcset r0-eth1 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-        # r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
-        # ap1.cmd('tcset ap1-eth2 --rate 30Mbps --delay 10ms --delay-distro 1 --delay-distribution pareto --loss 0.5%')
-        # ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+        if int(args.var) == 0:
+            r0.cmd('tcdel r0-eth1 --all')
+            r0.cmd('tcdel r0-eth2 --all')
+            r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 15ms')
+            r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 15ms')
+            ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+        else:
+            varrate = float(args.owd) * float(args.var) / 100
+            r0.cmd('tcdel r0-eth1 --all')
+            r0.cmd('tcdel r0-eth2 --all')
+            r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate, args.los))
+            r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate, args.los))
+            ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 15ms')
+            ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
 
     # print(args)
     print(server_cmd.format(num=args.clt))

@@ -2907,12 +2907,14 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
 	}
 
+	// time_interval := (sRTT[firstPath] + sRTT[secondPath]) / 10
 	// elapsed := time.Since(sch.time_Get_Action)
 
 	elapsed := uint16(stateData.CNumber) * 3
 	if elapsed < 9 {
 		elapsed = 9
 	}
+	// fmt.Println("Time interval: ", time_interval, elapsed)
 	if sch.count_Action > elapsed {
 		// fmt.Println("PayLoad: ", rewardPayload)
 		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]

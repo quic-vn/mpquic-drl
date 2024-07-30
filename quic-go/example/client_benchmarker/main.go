@@ -138,14 +138,17 @@ func main() {
 			}(addr)
 		}
 		wg.Wait()
-		sendTrainSignal2()
+		if i > 1 {
+			sendTrainSignal2()
+		}
 		// processInterfaces()
-		time.Sleep(time.Duration(*sleeptime) * time.Second)
+		// time.Sleep(time.Duration(*sleeptime) * time.Second)
+		time.Sleep(time.Duration(*sleeptime) * time.Millisecond)
 	}
 	// Thêm waitgroup cho sendTrainSignal
-	// wg.Add(1)
-	// go sendTrainSignal(&wg)
-	// wg.Wait()
+	wg.Add(1)
+	go sendTrainSignal(&wg)
+	wg.Wait()
 }
 
 // Hàm để xử lý các giao diện mạng không dây
