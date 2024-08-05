@@ -18,7 +18,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 reward_min = float('inf')
 reward_max = float('-inf')
 
-
 class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -112,7 +111,7 @@ class PolicyNetwork(nn.Module):
         return prob.cpu().detach().numpy()[0]
 
 class SACAgent:
-    def __init__(self, state_dim):
+    def __init__(self, state_dim, learningrate, discount):
         action_dim = 1
         self.actor = PolicyNetwork(state_dim).to(device)
         self.critic1 = SoftQNetwork(state_dim, action_dim).to(device)
@@ -122,20 +121,25 @@ class SACAgent:
         self.target_critic1.load_state_dict(self.critic1.state_dict())
         self.target_critic2.load_state_dict(self.critic2.state_dict())
 
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=1e-4)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=1e-4)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=learningrate)
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learningrate)
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate)
+        
+        # Adaptive alpha
+        self.target_entropy = -action_dim
+        self.log_alpha = torch.tensor(0.0, requires_grad=True)
+        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate)
+        self.alpha = self.log_alpha.exp().item()
 
-        self.discount = 0.99
+        self.discount = discount
         self.tau = 0.005
-        self.alpha = 0.2
 
         self.replay_buffer = ReplayBuffer(capacity=2000000)
         self.critic1_loss_history = []
         self.critic2_loss_history = []
         self.actor_loss_history = []
         self.rewards_history = []
-        self.action_history = []  
+        self.action_history = []
 
     def preprocess_state(self, state):
         state = np.array(state)
@@ -218,6 +222,15 @@ class SACAgent:
 
         for param, target_param in zip(self.critic2.parameters(), self.target_critic2.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+        # Update alpha
+        alpha_loss = -(self.log_alpha * (log_probs + self.target_entropy).detach()).mean()
+        
+        self.alpha_optimizer.zero_grad()
+        alpha_loss.backward()
+        self.alpha_optimizer.step()
+        
+        self.alpha = self.log_alpha.exp().item()
         
         self.rewards_history.append(rewards.sum().item())
         print("TRAINED")
@@ -269,4 +282,6 @@ class SACAgent:
 class Environment:
     def __init__(self):
         state_dim = 6
-        self.agent = SACAgent(state_dim)
+        learningrate = 1e-4
+        discount = 0.995
+        self.agent = SACAgent(state_dim, learningrate, discount)

@@ -2,6 +2,7 @@ package quic
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -118,6 +119,11 @@ type scheduler struct {
 	list_Action_SACMultiJoinCC map[State]ActionJoinCC
 	list_Reward_SACMultiJoinCC map[float64]RewardPayloadSACMultiJoinCC
 	current_Prob_JoinCC        ActionJoinCC
+
+	//log
+	csvwriter_state     *csv.Writer
+	csvwriter_reward    *csv.Writer
+	csvwriter_state_dis *csv.Writer
 }
 
 func (sch *scheduler) setup() {
@@ -250,6 +256,21 @@ func (sch *scheduler) setup() {
 		sch.list_Reward_SACMultiJoinCC = make(map[float64]RewardPayloadSACMultiJoinCC)
 		sch.count_Action = 0
 	}
+	//log
+	sch.model_id = TMP_ModelID
+	filePath := "./logs/state.csv"
+	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		panic(err)
+	}
+	sch.csvwriter_state = csv.NewWriter(f)
+	filePath = "./logs/state_dis.csv"
+	f2, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	sch.csvwriter_state_dis = csv.NewWriter(f2)
+	filePath = "./logs/reward.csv"
+	f3, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	sch.csvwriter_reward = csv.NewWriter(f3)
+	// fmt.Println("SETUP Scheduler")
 }
 
 func (sch *scheduler) getRetransmission(s *session) (hasRetransmission bool, retransmitPacket *ackhandler.Packet, pth *path) {
@@ -465,6 +486,26 @@ pathLoop:
 
 	// f2.WriteString(dataString2)
 	// utils.Debugf("SCH RTT - Selecting %d by low RTT: %f", selectedPathID, lowerRTT)
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
+		lRTT := make(map[protocol.PathID]time.Duration)
+		cwnd := make(map[protocol.PathID]protocol.ByteCount)
+		inp := make(map[protocol.PathID]protocol.ByteCount)
+		for pathID, pth := range s.paths {
+			lRTT[pathID] = pth.rttStats.LatestRTT()
+			cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+			inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+		}
+		sch.csvwriter_state.Write([]string{
+			// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
+			fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
+			fmt.Sprintf("%.2f", float64(inp[1])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[1].Nanoseconds())/1000000),
+			fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
+			fmt.Sprintf("%.2f", float64(inp[3])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
+		})
+		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	}
 	return selectedPath
 }
 
@@ -1121,12 +1162,14 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 	firstPath, secondPath := protocol.PathID(255), protocol.PathID(255)
 	lRTT := make(map[protocol.PathID]time.Duration)
 	cwnd := make(map[protocol.PathID]protocol.ByteCount)
+	inp := make(map[protocol.PathID]protocol.ByteCount)
 
 	//Paths
 	var availablePaths []protocol.PathID
 	for pathID, pth := range s.paths {
 		lRTT[pathID] = pth.rttStats.LatestRTT()
 		cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+		inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
 		if pathID != protocol.InitialPathID {
 			// fmt.Println("PathID: ", pathID)
 			availablePaths = append(availablePaths, pathID)
@@ -1176,8 +1219,18 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 		s_cLevel = 4
 	}
 
-	sch.countState[f_cLevel][s_cLevel]++
-
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
+		sch.countState[f_cLevel][s_cLevel]++
+		sch.csvwriter_state.Write([]string{
+			fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
+			fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
+		})
+		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	}
 	if sch.qtable[f_cLevel][s_cLevel][0] == 0 && sch.qtable[f_cLevel][s_cLevel][1] == sch.qtable[f_cLevel][s_cLevel][0] {
 		//fmt.Println("minrtt1")
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
@@ -1715,6 +1768,17 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 					file2.Close()
 				}
+				if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 {
+					//log
+					for _, row := range sch.countState {
+						var strRow []string
+						for _, val := range row {
+							strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
+						}
+						sch.csvwriter_state_dis.Write(strRow)
+						sch.csvwriter_state_dis.Flush()
+					}
+				}
 			}
 		default:
 		}
@@ -2120,7 +2184,7 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 	// elapsed := time.Since(sch.time_Get_Action)
 
-	if sch.count_Action > 10 {
+	if sch.count_Action > 9 {
 		// fmt.Println("PayLoad: ", rewardPayload)
 		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
 		// rewardPayload.NextState = stateData

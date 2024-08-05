@@ -42,7 +42,7 @@ def set_model():
 
 def train_model(model, model_id):
     try:
-        model.agent.train(batch_size=2000, model_id=model_id)
+        model.agent.train(batch_size=2048, model_id=model_id)
         print(f"Training completed for model_id: {model_id}")
     except Exception as e:
         print(f"Error training model_id {model_id}: {e}")

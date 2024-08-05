@@ -174,6 +174,11 @@ func (sch *scheduler) GetStateAndRewardQlearning(s *session, pth *path) {
 	s.scheduler.qtable[old_f_cLevel][old_s_cLevel][col] = newValue
 	s.scheduler.currentState_f = f_cLevel
 	s.scheduler.currentState_s = s_cLevel
+	//log
+	s.scheduler.csvwriter_reward.Write([]string{
+		fmt.Sprintf("%.2f", reWard[pth.pathID]),
+	})
+	s.scheduler.csvwriter_reward.Flush()
 }
 
 func (sch *scheduler) GetStateAndRewardMultiClients(s *session, pth *path) {
@@ -705,11 +710,13 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 	}
 
 	rttrate := 0.0
-	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / 100
+	goodput := 1024 * NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / float64(protocol.DefaultMaxCongestionWindow)
 	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	rttrate = float64(lRTT[pth.pathID]) / 100 / 1000000
+	rttrate = float64(lRTT[pth.pathID]) / 1000000 / 100
+	// restranrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
+	fmt.Println("Reward: ", 10*goodput, rttrate)
 
-	reWard[pth.pathID] = goodput - rttrate
+	reWard[pth.pathID] = 10*goodput - rttrate
 	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
 	var connID string = strconv.FormatFloat(old_action, 'E', -1, 64)
@@ -727,7 +734,7 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 		}
 		rewardPayload.CountReward += 1
 
-		if rewardPayload.CountReward > 8 {
+		if rewardPayload.CountReward > 9 {
 			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
 			rewardPayload.Action = old_action
 
