@@ -216,9 +216,12 @@ func (s *session) setup(
 		AllowedCongestion: s.config.AllowedCongestion,
 		DumpExp:           s.config.DumpExperiences}
 	s.scheduler.setup()
-	if s.perspective == protocol.PerspectiveServer {
-		s.scheduler.csvwriter_state.Write([]string{"CWND_1,InP_1,lRTT_1,CWND_2,InP_2,lRTT_2"})
-	}
+	// if s.perspective == protocol.PerspectiveServer {
+	// 	s.scheduler.csvwriter_state.Write([]string{"CWND_1,InP_1,lRTT_1,CWND_2,InP_2,lRTT_2"})
+	// 	s.scheduler.csvwriter_action.Write([]string{"Action"})
+	// 	s.scheduler.csvwriter_reward.Write([]string{"Reward"})
+	// 	s.scheduler.csvwriter_statistic.Write([]string{"CWND_1,RTT_1,Restran_1,CWND_2,RTT_2,Restran_2"})
+	// }
 
 	if pconnMgr == nil && conn != nil {
 		// XXX ONLY VALID FOR BENCHMARK!

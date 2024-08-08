@@ -124,6 +124,9 @@ type scheduler struct {
 	csvwriter_state     *csv.Writer
 	csvwriter_reward    *csv.Writer
 	csvwriter_state_dis *csv.Writer
+	csvwriter_statistic *csv.Writer //rtt, loss,
+	csvwriter_action    *csv.Writer
+	csvwriter_flag      bool
 }
 
 func (sch *scheduler) setup() {
@@ -270,6 +273,13 @@ func (sch *scheduler) setup() {
 	filePath = "./logs/reward.csv"
 	f3, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	sch.csvwriter_reward = csv.NewWriter(f3)
+	filePath = "./logs/action.csv"
+	f4, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	sch.csvwriter_action = csv.NewWriter(f4)
+	filePath = "./logs/statistic.csv"
+	f5, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	sch.csvwriter_statistic = csv.NewWriter(f5)
+	sch.csvwriter_flag = true
 	// fmt.Println("SETUP Scheduler")
 }
 
@@ -486,26 +496,26 @@ pathLoop:
 
 	// f2.WriteString(dataString2)
 	// utils.Debugf("SCH RTT - Selecting %d by low RTT: %f", selectedPathID, lowerRTT)
-	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
-		lRTT := make(map[protocol.PathID]time.Duration)
-		cwnd := make(map[protocol.PathID]protocol.ByteCount)
-		inp := make(map[protocol.PathID]protocol.ByteCount)
-		for pathID, pth := range s.paths {
-			lRTT[pathID] = pth.rttStats.LatestRTT()
-			cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
-			inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
-		}
-		sch.csvwriter_state.Write([]string{
-			// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
-			fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
-			fmt.Sprintf("%.2f", float64(inp[1])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[1].Nanoseconds())/1000000),
-			fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
-			fmt.Sprintf("%.2f", float64(inp[3])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
-		})
-		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-	}
+	// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
+	// 	lRTT := make(map[protocol.PathID]time.Duration)
+	// 	cwnd := make(map[protocol.PathID]protocol.ByteCount)
+	// 	inp := make(map[protocol.PathID]protocol.ByteCount)
+	// 	for pathID, pth := range s.paths {
+	// 		lRTT[pathID] = pth.rttStats.LatestRTT()
+	// 		cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+	// 		inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+	// 	}
+	// 	sch.csvwriter_state.Write([]string{
+	// 		// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
+	// 		fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
+	// 		fmt.Sprintf("%.2f", float64(inp[1])/1024),
+	// 		fmt.Sprintf("%.2f", float64(lRTT[1].Nanoseconds())/1000000),
+	// 		fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
+	// 		fmt.Sprintf("%.2f", float64(inp[3])/1024),
+	// 		fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
+	// 	})
+	// 	sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	// }
 	return selectedPath
 }
 
@@ -1219,18 +1229,18 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 		s_cLevel = 4
 	}
 
-	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
-		sch.countState[f_cLevel][s_cLevel]++
-		sch.csvwriter_state.Write([]string{
-			fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
-			fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
-			fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
-			fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
-		})
-		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-	}
+	// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
+	// 	sch.countState[f_cLevel][s_cLevel]++
+	// 	sch.csvwriter_state.Write([]string{
+	// 		fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
+	// 		fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
+	// 		fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
+	// 		fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
+	// 		fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
+	// 		fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
+	// 	})
+	// 	sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	// }
 	if sch.qtable[f_cLevel][s_cLevel][0] == 0 && sch.qtable[f_cLevel][s_cLevel][1] == sch.qtable[f_cLevel][s_cLevel][0] {
 		//fmt.Println("minrtt1")
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
@@ -1718,6 +1728,9 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 	sch.quotas[pth.pathID]++
 
 	sRTT := make(map[protocol.PathID]time.Duration)
+	restranNumber := make(map[protocol.PathID]uint64)
+	pktNumber := make(map[protocol.PathID]uint64)
+	cwnd := make(map[protocol.PathID]protocol.ByteCount)
 
 	// Provide some logging if it is the last packet
 	for _, frame := range packet.frames {
@@ -1730,19 +1743,34 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 				for pathID, pth := range s.paths {
 					sntPkts, sntRetrans, sntLost := pth.sentPacketHandler.GetStatistics()
 					rcvPkts := pth.receivedPacketHandler.GetStatistics()
-					utils.Infof("Path %x: sent %d retrans %d lost %d; rcv %d rtt %v; loss rate: %f", pathID, sntPkts, sntRetrans, sntLost, rcvPkts, pth.rttStats.SmoothedRTT(), float64(sntLost)/float64(sntPkts))
+					sRTT[pathID] = pth.rttStats.SmoothedRTT()
+					cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+					utils.Infof("Path %x: sent %d retrans %d lost %d; rcv %d rtt %v; loss rate: %f", pathID, sntPkts, sntRetrans, sntLost, rcvPkts, sRTT[pathID], float64(sntLost)/float64(sntPkts))
 					// TODO: Remove it
-					utils.Infof("Congestion Window: %d", pth.sentPacketHandler.GetCongestionWindow())
-					if sch.Training {
-						sRTT[pathID] = pth.rttStats.SmoothedRTT()
-					}
+					utils.Infof("Congestion Window: %d", cwnd[pathID])
+					restranNumber[pathID] = sntRetrans
+					pktNumber[pathID] = sntPkts
 				}
 
-				// if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
-				// 	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
-				// 	multiclients.S2.Remove(connID)
-				// 	// utils.Infof("countSession: %d", multiclients.NumSession)
-				// }
+				if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
+					var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+					multiclients.S2.Remove(connID)
+					// utils.Infof("countSession: %d", multiclients.NumSession)
+				}
+				//logs
+				if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.csvwriter_flag {
+					sch.csvwriter_statistic.Write([]string{
+						// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
+						fmt.Sprintf("%.3f", float64(cwnd[1])),
+						fmt.Sprintf("%.3f", float64(sRTT[1].Nanoseconds())/1000000),
+						fmt.Sprintf("%.3f", 100*float64(restranNumber[1])/float64(pktNumber[1])),
+						fmt.Sprintf("%.3f", float64(cwnd[3])),
+						fmt.Sprintf("%.3f", float64(sRTT[3].Nanoseconds())/1000000),
+						fmt.Sprintf("%.3f", 100*float64(restranNumber[3])/float64(pktNumber[3])),
+					})
+					sch.csvwriter_statistic.Flush()
+					sch.csvwriter_flag = false
+				}
 				s.pathsLock.RUnlock()
 
 				//Write lin parameters for Peekaboo
@@ -1768,17 +1796,17 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 					file2.Close()
 				}
-				if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 {
-					//log
-					for _, row := range sch.countState {
-						var strRow []string
-						for _, val := range row {
-							strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
-						}
-						sch.csvwriter_state_dis.Write(strRow)
-						sch.csvwriter_state_dis.Flush()
-					}
-				}
+				// if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 {
+				// 	//log
+				// 	for _, row := range sch.countState {
+				// 		var strRow []string
+				// 		for _, val := range row {
+				// 			strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
+				// 		}
+				// 		sch.csvwriter_state_dis.Write(strRow)
+				// 		sch.csvwriter_state_dis.Flush()
+				// 	}
+				// }
 			}
 		default:
 		}
@@ -1873,13 +1901,13 @@ func (sch *scheduler) sendPacket(s *session) error {
 		pth = sch.selectPath(s, hasRetransmission, hasStreamRetransmission, fromPth)
 		s.pathsLock.RUnlock()
 
-		// if s.perspective == protocol.PerspectiveServer{
-		// 	// pathIDTmp := 2
-		// 	// if pth == nil {
-		// 	// 	pathIDTmp = -1
-		// 	// }else{
-		// 	// 	pathIDTmp = int(pth.pathID)
-		// 	// }
+		//logs action
+		// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && pth != nil {
+		// 	s.scheduler.csvwriter_action.Write([]string{
+		// 		fmt.Sprintf("%d", int(pth.pathID)),
+		// 	})
+		// 	s.scheduler.csvwriter_action.Flush()
+		// }
 
 		// 	sRTT := make(map[protocol.PathID]time.Duration)
 		// 	cwndlevel := make(map[protocol.PathID]float32)
@@ -2079,7 +2107,7 @@ func (sch *scheduler) selectPathRandom(s *session, hasRetransmission bool, hasSt
 
 	var action protocol.PathID
 	action = 1
-	if sch.current_Prob > r.Float64() {
+	if r.Float64() > 0.5 {
 		action = 3
 	}
 	if s.paths[action].SendingAllowed() {
@@ -2161,12 +2189,12 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 	}
 
 	stateData := StateDQN{
-		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
-		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultTCPMSS),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultTCPMSS),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 10,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultTCPMSS),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultTCPMSS),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 10,
 	}
 
 	if sch.current_Prob == 0 {
@@ -2936,27 +2964,29 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 		INPf_mean = float64(INPf_total)
 		CWNDs_mean = float64(CWNDs_total)
 		INPs_mean = float64(INPs_total)
-		SRTTf_mean = NormalizeTimes(SRTTf_total)
-		SRTTs_mean = NormalizeTimes(SRTTs_total)
+		SRTTf_mean = NormalizeTimes(SRTTf_total) / float64(multiclients.S2.Count())
+		SRTTs_mean = NormalizeTimes(SRTTs_total) / float64(multiclients.S2.Count())
 	}
 
 	stateData := StateSACMulti{
-		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf: NormalizeTimes(sRTT[firstPath]) / 100.0 / 1000000.0,
-		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs: NormalizeTimes(sRTT[secondPath]) / 100.0 / 1000000.0,
+		CWNDf: float64(CWND[firstPath]) / float64(protocol.DefaultTCPMSS),
+		INPf:  float64(INP[firstPath]) / float64(protocol.DefaultTCPMSS),
+		SRTTf: NormalizeTimes(sRTT[firstPath]) / 10,
+		CWNDs: float64(CWND[secondPath]) / float64(protocol.DefaultTCPMSS),
+		INPs:  float64(INP[secondPath]) / float64(protocol.DefaultTCPMSS),
+		SRTTs: NormalizeTimes(sRTT[secondPath]) / 10,
 
-		CWNDf_all: CWNDf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPf_all:  INPf_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTf_all: SRTTf_mean / 100.0 / 1000000.0,
-		CWNDs_all: CWNDs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		INPs_all:  INPs_mean / float64(protocol.DefaultMaxCongestionWindow*1024),
-		SRTTs_all: SRTTs_mean / 100.0 / 1000000.0,
+		CWNDf_all: CWNDf_mean / float64(protocol.DefaultTCPMSS),
+		INPf_all:  INPf_mean / float64(protocol.DefaultTCPMSS),
+		SRTTf_all: SRTTf_mean / 10,
+		CWNDs_all: CWNDs_mean / float64(protocol.DefaultTCPMSS),
+		INPs_all:  INPs_mean / float64(protocol.DefaultTCPMSS),
+		SRTTs_all: SRTTs_mean / 10,
 
 		CNumber: multiclients.S2.Count(),
 	}
+	// fmt.Println("Path: ", firstPath, secondPath)
+	// fmt.Println("State: ", stateData)
 
 	if sch.current_Prob == 0 {
 		sch.current_Prob = 1
@@ -2974,12 +3004,12 @@ func (sch *scheduler) selectPathSACMulti(s *session, hasRetransmission bool, has
 	// time_interval := (sRTT[firstPath] + sRTT[secondPath]) / 10
 	// elapsed := time.Since(sch.time_Get_Action)
 
-	elapsed := uint16(stateData.CNumber) * 3
-	if elapsed < 9 {
-		elapsed = 9
-	}
+	// elapsed := uint16(stateData.CNumber) * 3
+	// if elapsed < 9 {
+	// 	elapsed = 9
+	// }else if elapsed >
 	// fmt.Println("Time interval: ", time_interval, elapsed)
-	if sch.count_Action > elapsed {
+	if sch.count_Action > 9 {
 		// fmt.Println("PayLoad: ", rewardPayload)
 		rewardPayload := sch.list_Reward_SACMulti[sch.current_Prob]
 		rewardPayload.NextState = stateData

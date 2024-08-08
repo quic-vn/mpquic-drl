@@ -18,7 +18,6 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 reward_min = float('inf')
 reward_max = float('-inf')
 
-
 class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -112,8 +111,7 @@ class PolicyNetwork(nn.Module):
         return prob.cpu().detach().numpy()[0]
 
 class SACAgent:
-    def __init__(self, state_dim):
-        action_dim = 1
+    def __init__(self, state_dim, action_dim, learningrate, discount):
         self.actor = PolicyNetwork(state_dim).to(device)
         self.critic1 = SoftQNetwork(state_dim, action_dim).to(device)
         self.critic2 = SoftQNetwork(state_dim, action_dim).to(device)
@@ -122,18 +120,24 @@ class SACAgent:
         self.target_critic1.load_state_dict(self.critic1.state_dict())
         self.target_critic2.load_state_dict(self.critic2.state_dict())
 
-        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=1e-4)
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=1e-4)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=1e-4)
+        self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=learningrate)
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learningrate)
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate)
 
-        self.discount = 0.99
+        self.discount = discount
         self.tau = 0.005
-        self.alpha = 0.2
+
+        # Adaptive alpha
+        self.target_entropy = -action_dim
+        self.log_alpha = torch.tensor(0.0, requires_grad=True)
+        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate)
+        self.alpha = self.log_alpha.exp().item()
 
         self.replay_buffer = ReplayBuffer(capacity=2000000)
         self.critic1_loss_history = []
         self.critic2_loss_history = []
         self.actor_loss_history = []
+        self.alpha_loss_history = []
         self.rewards_history = []
         self.action_history = []  
 
@@ -149,7 +153,7 @@ class SACAgent:
         return action
 
     def get_action_probability(self, state):
-        state = self.preprocess_state(state)  #  Normalize state
+        state = self.preprocess_state(state)  # Normalize state
         return self.actor.get_action_probability(state)
 
     def train(self, batch_size=128):
@@ -203,6 +207,16 @@ class SACAgent:
 
         for param, target_param in zip(self.critic2.parameters(), self.target_critic2.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
+
+        # Update alpha
+        alpha_loss = -(self.log_alpha * (log_probs + self.target_entropy).detach()).mean()
+        
+        self.alpha_optimizer.zero_grad()
+        alpha_loss.backward()
+        self.alpha_optimizer.step()
+        
+        self.alpha = self.log_alpha.exp().item()
+        self.alpha_loss_history.append(alpha_loss.item())
         
         self.rewards_history.append(rewards.sum().item())
         print("TRAINED")
@@ -217,24 +231,30 @@ class SACAgent:
             print(action)
 
     def plot_training_history(self):
-        plt.figure(figsize=(12, 6))
-        plt.subplot(1, 3, 1)
+        plt.figure(figsize=(16, 6))
+        plt.subplot(1, 4, 1)
         plt.plot(self.critic1_loss_history, label='Critic 1 Loss')
         plt.plot(self.critic2_loss_history, label='Critic 2 Loss')
         plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
-        plt.subplot(1, 3, 2)
+        plt.subplot(1, 4, 2)
         plt.plot(self.actor_loss_history, label='Actor Loss')
         plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
-        plt.subplot(1, 3, 3)
+        plt.subplot(1, 4, 3)
         plt.plot(self.rewards_history, label='Rewards')
         plt.xlabel('Episodes')
         plt.ylabel('Total Reward')
+        plt.legend()
+
+        plt.subplot(1, 4, 4)
+        plt.plot(self.alpha_loss_history, label='Alpha Loss')
+        plt.xlabel('Episodes')
+        plt.ylabel('Loss')
         plt.legend()
 
         plt.tight_layout()
@@ -244,4 +264,7 @@ class SACAgent:
 class Environment:
     def __init__(self):
         state_dim = 13
-        self.agent = SACAgent(state_dim)
+        action_dim = 1
+        learningrate = 1e-4
+        discount = 0.995
+        self.agent = SACAgent(state_dim, action_dim, learningrate, discount)

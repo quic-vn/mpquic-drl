@@ -24,7 +24,7 @@ training_request_count = 0
 
 def train_model():
     try:
-        current_env.agent.train(batch_size=2000)
+        current_env.agent.train(batch_size=2048)
     except Exception as e:
         print(f"Error in training: {e}")
 

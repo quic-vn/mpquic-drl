@@ -60,7 +60,7 @@ def runClient(station, id, client_cmd):
         #     break
         # print(tmp_time)
         # time.sleep(tmp_time)
-        time.sleep(2)
+        time.sleep(1)
         if global_flag == True:
             break
     global_flag = True
@@ -180,21 +180,58 @@ def topology(args, server_cmd, client_cmd):
         bg_thread.start()
     else:
         if int(args.var) == 0:
-            r0.cmd('tcdel r0-eth1 --all')
-            r0.cmd('tcdel r0-eth2 --all')
-            r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 15ms')
-            r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-            ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 15ms')
-            ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            # r0.cmd('tcdel r0-eth1 --all')
+            # r0.cmd('tcdel r0-eth2 --all')
+            # r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 15ms')
+            # r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            # ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 15ms')
+            # ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            r0.cmd('tc qdisc del root dev r0-eth1')
+            r0.cmd('tc qdisc del root dev r0-eth2')
+            r0.cmd('tc qdisc add dev r0-eth1 root handle 5:0 hfsc default 1')
+            r0.cmd('tc class add dev r0-eth1 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+            r0.cmd('tc qdisc add dev r0-eth2 root handle 5:0 hfsc default 1')
+            r0.cmd('tc class add dev r0-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
+            r0.cmd('tc qdisc add dev r0-eth1 parent 5:1 netem delay {}ms'.format(args.owd))
+            r0.cmd('tc qdisc add dev r0-eth2 parent 5:1 netem delay 15ms')
+
+            ap1.cmd('tc qdisc del root dev ap1-eth2')
+            ap1.cmd('tc qdisc add dev ap1-eth2 root handle 5:0 hfsc default 1')
+            ap1.cmd('tc class add dev ap1-eth2 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+            ap1.cmd('tc qdisc add dev ap1-eth2 parent 5:1 netem delay {}ms'.format(args.owd))
+
+            ap2.cmd('tc qdisc del root dev ap2-eth2')
+            ap2.cmd('tc qdisc add dev ap2-eth2 root handle 5:0 hfsc default 1')
+            ap2.cmd('tc class add dev ap2-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
+            ap2.cmd('tc qdisc add dev ap2-eth2 parent 5:1 netem delay 15ms')
         else:
-            varrate1 = 15.0 * float(args.var) / 100
-            varrate2 = float(args.owd) * float(args.var) / 100
-            r0.cmd('tcdel r0-eth1 --all')
-            r0.cmd('tcdel r0-eth2 --all')
-            r0.cmd('tcset r0-eth1 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate1, args.los))
-            r0.cmd('tcset r0-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate2, args.los))
-            ap1.cmd('tcset ap1-eth2 --rate 50Mbps --delay 15ms')
-            ap2.cmd('tcset ap2-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            # varrate1 = 15.0 * float(args.var) / 100
+            # varrate2 = float(args.owd) * float(args.var) / 100
+            # r0.cmd('tcdel r0-eth1 --all')
+            # r0.cmd('tcdel r0-eth2 --all')
+            # r0.cmd('tcset r0-eth1 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate2, args.los))
+            # r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate2, args.los))
+            # ap2.cmd('tcset ap1-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+            # ap1.cmd('tcset ap2-eth2 --rate 50Mbps --delay 15ms')
+
+            r0.cmd('tc qdisc del root dev r0-eth1')
+            r0.cmd('tc qdisc del root dev r0-eth2')
+            r0.cmd('tc qdisc add dev r0-eth1 root handle 5:0 hfsc default 1')
+            r0.cmd('tc class add dev r0-eth1 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+            r0.cmd('tc qdisc add dev r0-eth2 root handle 5:0 hfsc default 1')
+            r0.cmd('tc class add dev r0-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
+            r0.cmd('tc qdisc add dev r0-eth1 parent 5:1 netem loss 0.5% 50% delay {}ms 1ms 75%'.format(args.owd))
+            r0.cmd('tc qdisc add dev r0-eth2 parent 5:1 netem loss 0.5% 50% delay 15ms 1.5ms 75%')
+
+            ap1.cmd('tc qdisc del root dev ap1-eth2')
+            ap1.cmd('tc qdisc add dev ap1-eth2 root handle 5:0 hfsc default 1')
+            ap1.cmd('tc class add dev ap1-eth2 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+            ap1.cmd('tc qdisc add dev ap1-eth2 parent 5:1 netem loss 0.5% 50% delay {}ms 1ms 75%'.format(args.owd))
+
+            ap2.cmd('tc qdisc del root dev ap2-eth2')
+            ap2.cmd('tc qdisc add dev ap2-eth2 root handle 5:0 hfsc default 1')
+            ap2.cmd('tc class add dev ap2-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
+            ap2.cmd('tc qdisc add dev ap2-eth2 parent 5:1 netem loss 0.5% 50% delay 15ms 1.5ms 75%')
 
     # print(args)
     print(server_cmd.format(num=args.clt))

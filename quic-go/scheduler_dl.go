@@ -174,11 +174,11 @@ func (sch *scheduler) GetStateAndRewardQlearning(s *session, pth *path) {
 	s.scheduler.qtable[old_f_cLevel][old_s_cLevel][col] = newValue
 	s.scheduler.currentState_f = f_cLevel
 	s.scheduler.currentState_s = s_cLevel
-	//log
-	s.scheduler.csvwriter_reward.Write([]string{
-		fmt.Sprintf("%.2f", reWard[pth.pathID]),
-	})
-	s.scheduler.csvwriter_reward.Flush()
+	//log reward
+	// s.scheduler.csvwriter_reward.Write([]string{
+	// 	fmt.Sprintf("%.2f", reWard[pth.pathID]),
+	// })
+	// s.scheduler.csvwriter_reward.Flush()
 }
 
 func (sch *scheduler) GetStateAndRewardMultiClients(s *session, pth *path) {
@@ -710,13 +710,13 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 	}
 
 	rttrate := 0.0
-	goodput := 1024 * NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / float64(protocol.DefaultMaxCongestionWindow)
+	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
 	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	rttrate = float64(lRTT[pth.pathID]) / 1000000 / 100
+	rttrate = NormalizeTimes(lRTT[pth.pathID]) / 10
 	// restranrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	fmt.Println("Reward: ", 10*goodput, rttrate)
+	// fmt.Println("Reward: ", 10*goodput, rttrate)
 
-	reWard[pth.pathID] = 10*goodput - rttrate
+	reWard[pth.pathID] = goodput - rttrate
 	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
 	var connID string = strconv.FormatFloat(old_action, 'E', -1, 64)
@@ -791,12 +791,13 @@ func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
 	}
 
 	rttrate := 0.0
-	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID]) / 100
+	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
 	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	rttrate = float64(lRTT[pth.pathID]) / 100.0 / 1000000.0
+	rttrate = NormalizeTimes(lRTT[pth.pathID]) / 10
 
 	reWard[pth.pathID] = goodput - rttrate
 	old_action := sch.list_Action_SACMulti[State{pth.pathID, pth.lastRcvdPacketNumber}]
+	// fmt.Println("Reward: ", reWard[pth.pathID], 10*goodput, rttrate)
 
 	var connID string = strconv.FormatFloat(old_action, 'E', -1, 64)
 	if tmp_Reload, ok := multiclients.List_Reward_DQN.Get(connID); ok {
@@ -813,7 +814,7 @@ func (sch *scheduler) GetStateAndRewardSACMulti(s *session, pth *path) {
 		}
 		rewardPayload.CountReward += 1
 
-		if rewardPayload.CountReward > 8 {
+		if rewardPayload.CountReward > 9 {
 			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
 			rewardPayload.Action = old_action
 

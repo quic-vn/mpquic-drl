@@ -111,8 +111,7 @@ class PolicyNetwork(nn.Module):
         return prob.cpu().detach().numpy()[0]
 
 class SACAgent:
-    def __init__(self, state_dim, learningrate, discount):
-        action_dim = 1
+    def __init__(self, state_dim, action_dim, learningrate, discount):
         self.actor = PolicyNetwork(state_dim).to(device)
         self.critic1 = SoftQNetwork(state_dim, action_dim).to(device)
         self.critic2 = SoftQNetwork(state_dim, action_dim).to(device)
@@ -282,6 +281,7 @@ class SACAgent:
 class Environment:
     def __init__(self):
         state_dim = 6
+        action_dim = 1
         learningrate = 1e-4
         discount = 0.995
-        self.agent = SACAgent(state_dim, learningrate, discount)
+        self.agent = SACAgent(state_dim, action_dim, learningrate, discount)
