@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Bernoulli
+import torch.optim.lr_scheduler as lr_scheduler
+
 from collections import deque, namedtuple
 import matplotlib
 matplotlib.use('Agg')  # backend 'Agg'
@@ -44,7 +46,7 @@ class ReplayBuffer:
     def add(self, state, action, reward, next_state, done):
         state = self.normalize(state)  #  Normalize state
         next_state = self.normalize(next_state)  
-        reward = self.normalize_reward(reward)
+        # reward = self.normalize_reward(reward)
         e = self.experience(state, action, reward, next_state, done)
         self.buffer.append(e)
 
@@ -111,7 +113,7 @@ class PolicyNetwork(nn.Module):
         return prob.cpu().detach().numpy()[0]
 
 class SACAgent:
-    def __init__(self, state_dim, action_dim, learningrate, discount):
+    def __init__(self, state_dim, action_dim, learningrate, discount, tau):
         self.actor = PolicyNetwork(state_dim).to(device)
         self.critic1 = SoftQNetwork(state_dim, action_dim).to(device)
         self.critic2 = SoftQNetwork(state_dim, action_dim).to(device)
@@ -123,15 +125,22 @@ class SACAgent:
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=learningrate)
         self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learningrate)
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate)
-        
+
         # Adaptive alpha
         self.target_entropy = -action_dim
-        self.log_alpha = torch.tensor(0.0, requires_grad=True)
-        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate)
+        self.log_alpha = torch.tensor(0.0, requires_grad=True, device=device)  # Đảm bảo log_alpha ở đúng thiết bị
+        self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate) 
+
+        # Thêm Learning Rate Scheduler cho Actor, Critic và Alpha
+        self.actor_scheduler = lr_scheduler.ReduceLROnPlateau(self.actor_optimizer, mode='min', factor=0.5, patience=30)
+        self.critic1_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic1_optimizer, mode='min', factor=0.5, patience=30)
+        self.critic2_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic2_optimizer, mode='min', factor=0.5, patience=30)
+        self.alpha_scheduler = lr_scheduler.ReduceLROnPlateau(self.alpha_optimizer, mode='min', factor=0.5, patience=30)
+
         self.alpha = self.log_alpha.exp().item()
 
         self.discount = discount
-        self.tau = 0.005
+        self.tau = tau
 
         self.replay_buffer = ReplayBuffer(capacity=2000000)
         self.critic1_loss_history = []
@@ -145,34 +154,12 @@ class SACAgent:
         state = np.array(state)
         state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
         return state
-    
-    def select_action(self, state):
-        prob = self.actor.get_action_probability(state)
-        action = 1 if prob > 0.5 else 0
-        self.action_history.append(action)  
-        return action
 
     def get_action_probability(self, state):
         state = self.preprocess_state(state)  #  Normalize state
         return self.actor.get_action_probability(state)
-
-    def preprocess_state(self, state):
-        state = np.array(state)
-        state = (state - np.mean(state)) / (np.std(state) + 1e-5)  # Add 1e-5 to avoid division by 0
-        return state
     
-    def select_action(self, state):
-        prob = self.actor.get_action_probability(state)
-        action = 1 if prob > 0.5 else 0
-        self.action_history.append(action)  
-        return action
-
-    def get_action_probability(self, state):
-        state = self.preprocess_state(state)  # Normalize state
-        return self.actor.get_action_probability(state)
-
-    def train(self, batch_size=64, model_id=0):
-        print("TRAINNNNNNNNNNNNNNNNNNNN")
+    def train(self, batch_size=2048, model_id=0):
         if len(self.replay_buffer) < batch_size:
             return
 
@@ -188,35 +175,43 @@ class SACAgent:
         current_q1 = self.critic1(states, actions)
         current_q2 = self.critic2(states, actions)
 
-        assert current_q1.shape == target_q.shape, f"current_q1.shape: {current_q1.shape}, target_q.shape: {target_q.shape}"
-        assert current_q2.shape == target_q.shape, f"current_q2.shape: {current_q2.shape}, target_q.shape: {target_q.shape}"
-
         critic1_loss = F.mse_loss(current_q1, target_q)
         critic2_loss = F.mse_loss(current_q2, target_q)
 
         self.critic1_optimizer.zero_grad()
         critic1_loss.backward()
+        # Gradient clipping for critic1
+        # torch.nn.utils.clip_grad_norm_(self.critic1.parameters(), max_norm=1.0)
         self.critic1_optimizer.step()
 
         self.critic2_optimizer.zero_grad()
         critic2_loss.backward()
+        # Gradient clipping for critic2
+        # torch.nn.utils.clip_grad_norm_(self.critic2.parameters(), max_norm=1.0)
         self.critic2_optimizer.step()
 
         self.critic1_loss_history.append(critic1_loss.item())
         self.critic2_loss_history.append(critic2_loss.item())
 
+        # Scheduler step for critics
+        self.critic1_scheduler.step(critic1_loss)
+        self.critic2_scheduler.step(critic2_loss)
+
         new_actions, log_probs = self.actor.sample_action(states)
         q1_new = self.critic1(states, new_actions)
         q2_new = self.critic2(states, new_actions)
         actor_loss = (self.alpha * log_probs - torch.min(q1_new, q2_new)).mean()
-        
+
         self.actor_loss_history.append(actor_loss.item())
-        # self.rewards_history.append(rewards.item())
 
         self.actor_optimizer.zero_grad()
         actor_loss.backward()
         self.actor_optimizer.step()
 
+        # Scheduler step for actor
+        self.actor_scheduler.step(actor_loss)
+
+        # Updating target networks
         for param, target_param in zip(self.critic1.parameters(), self.target_critic1.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
@@ -224,14 +219,19 @@ class SACAgent:
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
 
         # Update alpha
-        alpha_loss = -(self.log_alpha * (log_probs + self.target_entropy).detach()).mean()
-        
+        # Alpha loss calculation (based on the SAC algorithm theory)
+        alpha_loss = -(self.log_alpha.exp() * (log_probs + self.target_entropy).detach()).mean()
+
         self.alpha_optimizer.zero_grad()
         alpha_loss.backward()
         self.alpha_optimizer.step()
-        
+
+        # Update alpha value
         self.alpha = self.log_alpha.exp().item()
         self.alpha_loss_history.append(alpha_loss.item())
+
+        # Scheduler step cho alpha
+        self.alpha_scheduler.step(alpha_loss)
 
         self.rewards_history.append(rewards.sum().item())
         print("TRAINED")
@@ -292,4 +292,5 @@ class Environment:
         action_dim = 1
         learningrate = 1e-4
         discount = 0.995
-        self.agent = SACAgent(state_dim, action_dim, learningrate, discount)
+        tau = 0.01
+        self.agent = SACAgent(state_dim, action_dim, learningrate, discount, tau)

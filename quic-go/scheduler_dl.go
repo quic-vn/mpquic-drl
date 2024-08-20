@@ -33,6 +33,34 @@ func NormalizeGoodput(s *session, packetNumber uint64, retransNumber uint64) flo
 	return goodput
 }
 
+func NormalizeRewardGoodput(goodput float64) float64 {
+	if goodput < Goodput_Min {
+		Goodput_Min = goodput
+	}
+	if goodput > Goodput_Max {
+		Goodput_Max = goodput
+	}
+	if Goodput_Max > Goodput_Min {
+		return (goodput - Goodput_Min) / (Goodput_Max - Goodput_Min)
+	} else {
+		return 0.0
+	}
+}
+
+func NormalizeRewardLrtt(lrtt float64) float64 {
+	if lrtt < Lrtt_Min {
+		Lrtt_Min = lrtt
+	}
+	if lrtt > Lrtt_Max {
+		Lrtt_Max = lrtt
+	}
+	if Lrtt_Max > Lrtt_Min {
+		return (lrtt - Lrtt_Min) / (Lrtt_Max - Lrtt_Min)
+	} else {
+		return 0.0
+	}
+}
+
 func (sch *scheduler) GetStateAndRewardQlearning(s *session, pth *path) {
 	//rcvdpacketNumber := pth.lastRcvdPacketNumber
 	packetNumber := make(map[protocol.PathID]uint64)
@@ -714,11 +742,12 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 	rttrate := 0.0
 	goodput := NormalizeGoodput(s, packetNumber[pth.pathID], retransNumber[pth.pathID])
 	// lostrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	rttrate = NormalizeTimes(lRTT[pth.pathID]) / 10
+	rttrate = NormalizeTimes(lRTT[pth.pathID])
 	// restranrate := float64(retransNumber[pth.pathID]) / float64(packetNumber[pth.pathID])
-	// fmt.Println("Reward: ", 10*goodput, rttrate)
 
-	reWard[pth.pathID] = goodput - rttrate
+	reWard[pth.pathID] = sch.Beta*NormalizeRewardGoodput(goodput) - (1-sch.Beta)*NormalizeRewardLrtt(rttrate)
+	// fmt.Println("Reward: ", reWard[pth.pathID], NormalizeRewardGoodput(goodput), NormalizeRewardLrtt(rttrate), sch.Alpha, sch.Beta)
+
 	old_action := sch.list_Action_DQN[State{pth.pathID, pth.lastRcvdPacketNumber}]
 
 	var connID string = strconv.FormatFloat(old_action, 'E', -1, 64)

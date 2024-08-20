@@ -41,7 +41,7 @@ do
             do 
                 for frq in "${frqArr[@]}"
                 do
-                    echo -e "${frq}" > ./config/sac 
+                    echo -e "${frq}\n0.3" > ./config/sac 
                     for bwd in "${bwdArr[@]}"
                     do 
                         for owd in "${owdArr[@]}"

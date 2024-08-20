@@ -21,6 +21,10 @@ import (
 )
 
 var TMP_ModelID uint64 = 0
+var Goodput_Min float64 = 0
+var Goodput_Max float64 = 0
+var Lrtt_Min float64 = 0
+var Lrtt_Max float64 = 0
 
 // packetHandler handles packets
 type packetHandler interface {

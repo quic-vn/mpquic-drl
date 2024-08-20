@@ -238,7 +238,13 @@ func (sch *scheduler) setup() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Fscanln(f, &sch.Alpha)
+		var config [2]float64
+		for i := 0; i < 2; i++ {
+			fmt.Fscanln(f, &config[i])
+		}
+		sch.Alpha = config[0]
+		sch.Beta = config[1]
+
 		sch.list_State_DQN = make(map[State]StateDQN)
 		sch.list_Action_DQN = make(map[State]float64)
 		sch.model_id = TMP_ModelID
