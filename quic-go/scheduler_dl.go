@@ -175,10 +175,12 @@ func (sch *scheduler) GetStateAndRewardQlearning(s *session, pth *path) {
 	s.scheduler.currentState_f = f_cLevel
 	s.scheduler.currentState_s = s_cLevel
 	//log reward
-	// s.scheduler.csvwriter_reward.Write([]string{
-	// 	fmt.Sprintf("%.2f", reWard[pth.pathID]),
-	// })
-	// s.scheduler.csvwriter_reward.Flush()
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.AdaDivisor == 1 {
+		s.scheduler.csvwriter_reward.Write([]string{
+			fmt.Sprintf("%.2f", reWard[pth.pathID]),
+		})
+		s.scheduler.csvwriter_reward.Flush()
+	}
 }
 
 func (sch *scheduler) GetStateAndRewardMultiClients(s *session, pth *path) {
@@ -733,8 +735,13 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 			rewardPayload.Reward += reWard[pth.pathID] * (1 - old_action)
 		}
 		rewardPayload.CountReward += 1
-
-		if rewardPayload.CountReward > 9 {
+		k := uint16(0)
+		if uint16(sch.Alpha) < 6 {
+			k = uint16(sch.Alpha)
+		} else {
+			k = uint16(sch.Alpha) - 2
+		}
+		if rewardPayload.CountReward >= k {
 			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
 			rewardPayload.Action = old_action
 

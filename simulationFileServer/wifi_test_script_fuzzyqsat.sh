@@ -18,17 +18,16 @@ do
 done
 
 declare -a mdlArr=("none") #("none" "dif1" "dif2" "mobi")
-declare -a numArr=("1") #("1" "3" "5")
+declare -a numArr=("1") #("1" "4" "8")
 declare -a filArr=("2MB") 
 declare -a bgrArr=("0")
-declare -a frqArr=("0")
-declare -a bwdArr=("10") #bandwidth
+declare -a frqArr=("0.4") #change to epsilon
+# declare -a frqArr=("0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9" "1.0") #change to epsilon
+declare -a bwdArr=("30") #bandwidth
 declare -a owdArr=("10") #one-way delay
 declare -a varArr=("10") #variation delay
 declare -a losArr=("1") #pkt loss 
-# declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
-# declare -a schArr=("rtt")
-declare -a schArr=("fuzzyqsat")
+declare -a schArr=("fuzzyqsat" "rtt")
 
 for mdl in "${mdlArr[@]}"
 do 
@@ -39,7 +38,8 @@ do
             for bgr in "${bgrArr[@]}"
             do 
                 for frq in "${frqArr[@]}"
-                do 
+                do
+                    echo -e "0.3\n0.5\n0.5\n0.4\n${frq}\n1.0" > ./config/qsat 
                     for bwd in "${bwdArr[@]}"
                     do 
                         for owd in "${owdArr[@]}"
@@ -55,27 +55,12 @@ do
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
-                                        sudo mv ./logs/result4.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result4.csv   
-                                        sudo mv ./logs/result5.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result5.csv   
-                                        sudo mv ./logs/result6.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result6.csv   
-                                        sudo mv ./logs/result7.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result7.csv   
-                                        sudo mv ./logs/result8.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result8.csv   
-                                        sudo mv ./logs/result9.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result9.csv   
-                                        sudo mv ./logs/result10.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result10.csv   
-                                        sudo mv ./logs/result11.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result11.csv   
+                                           
                                         sudo mv ./logs/state.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-state.csv   
                                         sudo mv ./logs/state_dis.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-state_dis.csv   
                                         sudo mv ./logs/reward.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-reward.csv   
                                         sudo mv ./logs/action.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-action.csv   
                                         sudo mv ./logs/statistic.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-statistic.csv   
-
-                                        sudo mv ./logs/server-flask.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-flask.logs  
-                                        sudo mv ./logs/training_history.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training.png 
-                                        sudo mv ./logs/training_history_3.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_3.png 
-                                        sudo mv ./logs/training_history_4.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_4.png 
-                                        sudo mv ./logs/training_history_5.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_5.png 
-                                        sudo mv ./logs/training_history_6.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_6.png 
-
                                         sudo mn -c
                                         sleep 10
                                     done
@@ -88,10 +73,11 @@ do
         done
     done
 done
-
 
 declare -a varArr=("10") #variation delay
 declare -a losArr=("1") #pkt loss 
+declare -a schArr=("fuzzyqsat" "rtt")
+
 for mdl in "${mdlArr[@]}"
 do 
     for num in "${numArr[@]}"
@@ -101,7 +87,8 @@ do
             for bgr in "${bgrArr[@]}"
             do 
                 for frq in "${frqArr[@]}"
-                do 
+                do
+                    echo -e "0.3\n0.5\n0.5\n0.4\n${frq}\n1.0" > ./config/qsat 
                     for bwd in "${bwdArr[@]}"
                     do 
                         for owd in "${owdArr[@]}"
@@ -117,27 +104,12 @@ do
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
-                                        sudo mv ./logs/result4.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result4.csv   
-                                        sudo mv ./logs/result5.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result5.csv   
-                                        sudo mv ./logs/result6.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result6.csv   
-                                        sudo mv ./logs/result7.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result7.csv   
-                                        sudo mv ./logs/result8.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result8.csv   
-                                        sudo mv ./logs/result9.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result9.csv   
-                                        sudo mv ./logs/result10.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result10.csv   
-                                        sudo mv ./logs/result11.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result11.csv   
+                                           
                                         sudo mv ./logs/state.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-state.csv   
                                         sudo mv ./logs/state_dis.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-state_dis.csv   
                                         sudo mv ./logs/reward.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-reward.csv   
                                         sudo mv ./logs/action.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-action.csv   
                                         sudo mv ./logs/statistic.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-statistic.csv   
-
-                                        sudo mv ./logs/server-flask.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-flask.logs  
-                                        sudo mv ./logs/training_history.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training.png 
-                                        sudo mv ./logs/training_history_3.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_3.png 
-                                        sudo mv ./logs/training_history_4.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_4.png 
-                                        sudo mv ./logs/training_history_5.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_5.png 
-                                        sudo mv ./logs/training_history_6.png ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-training_6.png 
-
                                         sudo mn -c
                                         sleep 10
                                     done
@@ -150,3 +122,4 @@ do
         done
     done
 done
+

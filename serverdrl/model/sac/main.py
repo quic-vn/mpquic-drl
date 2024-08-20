@@ -137,6 +137,7 @@ class SACAgent:
         self.critic1_loss_history = []
         self.critic2_loss_history = []
         self.actor_loss_history = []
+        self.alpha_loss_history = []
         self.rewards_history = []
         self.action_history = []
 
@@ -230,7 +231,8 @@ class SACAgent:
         self.alpha_optimizer.step()
         
         self.alpha = self.log_alpha.exp().item()
-        
+        self.alpha_loss_history.append(alpha_loss.item())
+
         self.rewards_history.append(rewards.sum().item())
         print("TRAINED")
         self.plot_training_history(model_id)
@@ -254,21 +256,27 @@ class SACAgent:
         # print("Actor Loss History:", self.actor_loss_history)
         # print("Rewards History:", self.rewards_history)
 
-        plt.figure(figsize=(12, 6))
-        plt.subplot(1, 3, 1)
+        plt.figure(figsize=(16, 6))
+        plt.subplot(1, 4, 1)
         plt.plot(self.critic1_loss_history, label='Critic 1 Loss')
         plt.plot(self.critic2_loss_history, label='Critic 2 Loss')
         plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
-        plt.subplot(1, 3, 2)
+        plt.subplot(1, 4, 2)
         plt.plot(self.actor_loss_history, label='Actor Loss')
         plt.xlabel('Episodes')
         plt.ylabel('Loss')
         plt.legend()
 
-        plt.subplot(1, 3, 3)
+        plt.subplot(1, 4, 3)
+        plt.plot(self.alpha_loss_history, label='Alpha Loss')
+        plt.xlabel('Episodes')
+        plt.ylabel('Loss')
+        plt.legend()
+
+        plt.subplot(1, 4, 4)
         plt.plot(self.rewards_history, label='Rewards')
         plt.xlabel('Episodes')
         plt.ylabel('Total Reward')

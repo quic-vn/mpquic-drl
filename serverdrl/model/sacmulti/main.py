@@ -246,15 +246,15 @@ class SACAgent:
         plt.legend()
 
         plt.subplot(1, 4, 3)
-        plt.plot(self.rewards_history, label='Rewards')
-        plt.xlabel('Episodes')
-        plt.ylabel('Total Reward')
-        plt.legend()
-
-        plt.subplot(1, 4, 4)
         plt.plot(self.alpha_loss_history, label='Alpha Loss')
         plt.xlabel('Episodes')
         plt.ylabel('Loss')
+        plt.legend()
+
+        plt.subplot(1, 4, 4)
+        plt.plot(self.rewards_history, label='Rewards')
+        plt.xlabel('Episodes')
+        plt.ylabel('Total Reward')
         plt.legend()
 
         plt.tight_layout()

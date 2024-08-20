@@ -141,7 +141,7 @@ func (sch *scheduler) setup() {
 	sch.count_Reward = 0
 	sch.time_Get_Action = time.Now()
 	sch.list_Reward_DQN = make(map[float64]RewardPayload)
-
+	sch.AdaDivisor = 0
 	if sch.SchedulerName == "random" {
 		sch.current_Prob = 0.5
 	}
@@ -215,7 +215,7 @@ func (sch *scheduler) setup() {
 		// fmt.Println(sch.Beta)
 		// fmt.Println(sch.Delta)
 		// fmt.Println(sch.Gamma)
-		// fmt.Println(sch.Epsilon)
+		fmt.Println(sch.Epsilon)
 
 		sch.countSelectPath = 0
 
@@ -234,10 +234,15 @@ func (sch *scheduler) setup() {
 		// modelType := map[string]string{"model_type": "dqn"}
 		// setModel(modelType)
 	} else if sch.SchedulerName == "sac" {
+		f, err := os.Open("./config/sac")
+		if err != nil {
+			panic(err)
+		}
+		fmt.Fscanln(f, &sch.Alpha)
 		sch.list_State_DQN = make(map[State]StateDQN)
 		sch.list_Action_DQN = make(map[State]float64)
 		sch.model_id = TMP_ModelID
-		// fmt.Println("CheckllL: ", TMP_ModelID)
+		fmt.Println("Check_K: ", sch.Alpha)
 		sch.count_Action = 0
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		setModel("sac", sch.model_id)
@@ -496,26 +501,27 @@ pathLoop:
 
 	// f2.WriteString(dataString2)
 	// utils.Debugf("SCH RTT - Selecting %d by low RTT: %f", selectedPathID, lowerRTT)
-	// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
-	// 	lRTT := make(map[protocol.PathID]time.Duration)
-	// 	cwnd := make(map[protocol.PathID]protocol.ByteCount)
-	// 	inp := make(map[protocol.PathID]protocol.ByteCount)
-	// 	for pathID, pth := range s.paths {
-	// 		lRTT[pathID] = pth.rttStats.LatestRTT()
-	// 		cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
-	// 		inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
-	// 	}
-	// 	sch.csvwriter_state.Write([]string{
-	// 		// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
-	// 		fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
-	// 		fmt.Sprintf("%.2f", float64(inp[1])/1024),
-	// 		fmt.Sprintf("%.2f", float64(lRTT[1].Nanoseconds())/1000000),
-	// 		fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
-	// 		fmt.Sprintf("%.2f", float64(inp[3])/1024),
-	// 		fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
-	// 	})
-	// 	sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-	// }
+	//log state
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.AdaDivisor == 1 {
+		lRTT := make(map[protocol.PathID]time.Duration)
+		cwnd := make(map[protocol.PathID]protocol.ByteCount)
+		inp := make(map[protocol.PathID]protocol.ByteCount)
+		for pathID, pth := range s.paths {
+			lRTT[pathID] = pth.rttStats.LatestRTT()
+			cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
+			inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
+		}
+		sch.csvwriter_state.Write([]string{
+			// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
+			fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
+			fmt.Sprintf("%.2f", float64(inp[1])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[1].Nanoseconds())/1000000),
+			fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
+			fmt.Sprintf("%.2f", float64(inp[3])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
+		})
+		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	}
 	return selectedPath
 }
 
@@ -1228,19 +1234,19 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 	} else {
 		s_cLevel = 4
 	}
-
-	// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 {
-	// 	sch.countState[f_cLevel][s_cLevel]++
-	// 	sch.csvwriter_state.Write([]string{
-	// 		fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
-	// 		fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
-	// 		fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
-	// 		fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
-	// 		fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
-	// 		fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
-	// 	})
-	// 	sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-	// }
+	//log state
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.AdaDivisor == 1 {
+		sch.countState[f_cLevel][s_cLevel]++
+		sch.csvwriter_state.Write([]string{
+			fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
+			fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
+		})
+		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	}
 	if sch.qtable[f_cLevel][s_cLevel][0] == 0 && sch.qtable[f_cLevel][s_cLevel][1] == sch.qtable[f_cLevel][s_cLevel][0] {
 		//fmt.Println("minrtt1")
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
@@ -1796,17 +1802,17 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 					file2.Close()
 				}
-				// if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 {
-				// 	//log
-				// 	for _, row := range sch.countState {
-				// 		var strRow []string
-				// 		for _, val := range row {
-				// 			strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
-				// 		}
-				// 		sch.csvwriter_state_dis.Write(strRow)
-				// 		sch.csvwriter_state_dis.Flush()
-				// 	}
-				// }
+				if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 && sch.AdaDivisor == 1 {
+					//log
+					for _, row := range sch.countState {
+						var strRow []string
+						for _, val := range row {
+							strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
+						}
+						sch.csvwriter_state_dis.Write(strRow)
+						sch.csvwriter_state_dis.Flush()
+					}
+				}
 			}
 		default:
 		}
@@ -1902,27 +1908,27 @@ func (sch *scheduler) sendPacket(s *session) error {
 		s.pathsLock.RUnlock()
 
 		//logs action
-		// if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && pth != nil {
-		// 	s.scheduler.csvwriter_action.Write([]string{
-		// 		fmt.Sprintf("%d", int(pth.pathID)),
-		// 	})
-		// 	s.scheduler.csvwriter_action.Flush()
-		// }
+		if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && pth != nil && sch.AdaDivisor == 1 {
+			s.scheduler.csvwriter_action.Write([]string{
+				fmt.Sprintf("%d", int(pth.pathID)),
+			})
+			s.scheduler.csvwriter_action.Flush()
+		}
 
-		// 	sRTT := make(map[protocol.PathID]time.Duration)
-		// 	cwndlevel := make(map[protocol.PathID]float32)
-		// 	cwndlevel[1] = 0
-		// 	cwndlevel[3] = 0
-		// 	for pathID, path := range s.paths {
-		// 		if pathID != protocol.InitialPathID {
-		// 			sRTT[pathID] = path.rttStats.SmoothedRTT()
-		// 			if float32(path.sentPacketHandler.GetCongestionWindow()) != 0 {
-		// 				cwndlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(path.sentPacketHandler.GetCongestionWindow())
-		// 			}else {
-		// 				cwndlevel[pathID] = 0
-		// 			}
+		// sRTT := make(map[protocol.PathID]time.Duration)
+		// cwndlevel := make(map[protocol.PathID]float32)
+		// cwndlevel[1] = 0
+		// cwndlevel[3] = 0
+		// for pathID, path := range s.paths {
+		// 	if pathID != protocol.InitialPathID {
+		// 		sRTT[pathID] = path.rttStats.SmoothedRTT()
+		// 		if float32(path.sentPacketHandler.GetCongestionWindow()) != 0 {
+		// 			cwndlevel[pathID] = float32(path.sentPacketHandler.GetBytesInFlight()) / float32(path.sentPacketHandler.GetCongestionWindow())
+		// 		}else {
+		// 			cwndlevel[pathID] = 0
 		// 		}
 		// 	}
+		// }
 
 		// 	//fileNameTmp := "/App/output/" + string(s.connectionID) + ".csv"
 		// 	// fileNameTmp := fmt.Sprintf("/App/tmp/%d.csv", s.connectionID)
@@ -2212,7 +2218,7 @@ func (sch *scheduler) selectPathSAC(s *session, hasRetransmission bool, hasStrea
 
 	// elapsed := time.Since(sch.time_Get_Action)
 
-	if sch.count_Action > 9 {
+	if sch.count_Action >= uint16(sch.Alpha) {
 		// fmt.Println("PayLoad: ", rewardPayload)
 		// rewardPayload := sch.list_Reward_DQN[sch.current_Prob]
 		// rewardPayload.NextState = stateData
