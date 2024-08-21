@@ -17,14 +17,14 @@ do
     cp "clientMPQUIC" "clientMPQUIC$i"
 done
 
-declare -a mdlArr=("none") #("none" "dif1" "dif2" "mobi")
+declare -a mdlArr=("none" "dif1" "dif2") #("none" "dif1" "dif2" "mobi")
 declare -a numArr=("1") #("1" "4" "8")
-declare -a filArr=("2MB") 
+declare -a filArr=("1MB" "2MB" "4MB" "8MB") 
 declare -a bgrArr=("0")
 declare -a frqArr=("0.4") #change to epsilon
 # declare -a frqArr=("0.1" "0.2" "0.3" "0.4" "0.5" "0.6" "0.7" "0.8" "0.9" "1.0") #change to epsilon
-declare -a bwdArr=("30") #bandwidth
-declare -a owdArr=("10") #one-way delay
+declare -a bwdArr=("5" "10" "30") #bandwidth
+declare -a owdArr=("10" "15") #one-way delay
 declare -a varArr=("10") #variation delay
 declare -a losArr=("1") #pkt loss 
 declare -a schArr=("fuzzyqsat" "rtt")
@@ -74,8 +74,8 @@ do
     done
 done
 
-declare -a varArr=("10") #variation delay
-declare -a losArr=("1") #pkt loss 
+declare -a varArr=("0") #variation delay
+declare -a losArr=("0") #pkt loss 
 declare -a schArr=("fuzzyqsat" "rtt")
 
 for mdl in "${mdlArr[@]}"

@@ -123,8 +123,8 @@ class SACAgent:
         self.target_critic2.load_state_dict(self.critic2.state_dict())
 
         self.actor_optimizer = optim.Adam(self.actor.parameters(), lr=learningrate)
-        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learningrate)
-        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate)
+        self.critic1_optimizer = optim.Adam(self.critic1.parameters(), lr=learningrate, weight_decay=1e-4)
+        self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate, weight_decay=1e-4)
 
         # Adaptive alpha
         self.target_entropy = -action_dim
@@ -132,10 +132,10 @@ class SACAgent:
         self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate) 
 
         # Thêm Learning Rate Scheduler cho Actor, Critic và Alpha
-        self.actor_scheduler = lr_scheduler.ReduceLROnPlateau(self.actor_optimizer, mode='min', factor=0.5, patience=30)
-        self.critic1_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic1_optimizer, mode='min', factor=0.5, patience=30)
-        self.critic2_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic2_optimizer, mode='min', factor=0.5, patience=30)
-        self.alpha_scheduler = lr_scheduler.ReduceLROnPlateau(self.alpha_optimizer, mode='min', factor=0.5, patience=30)
+        self.actor_scheduler = lr_scheduler.ReduceLROnPlateau(self.actor_optimizer, mode='min', factor=0.99, patience=5)
+        self.critic1_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic1_optimizer, mode='min', factor=0.99, patience=5)
+        self.critic2_scheduler = lr_scheduler.ReduceLROnPlateau(self.critic2_optimizer, mode='min', factor=0.99, patience=5)
+        self.alpha_scheduler = lr_scheduler.ReduceLROnPlateau(self.alpha_optimizer, mode='min', factor=0.99, patience=5)
 
         self.alpha = self.log_alpha.exp().item()
 
@@ -167,6 +167,8 @@ class SACAgent:
 
         with torch.no_grad():
             next_actions, next_log_probs = self.actor.sample_action(next_states)
+            # noise = torch.normal(mean=0, std=0.2, size=next_actions.shape).clamp(-0.5, 0.5).to(device)
+            # next_actions = (next_actions + noise).clamp(-1, 1)  # Giới hạn giá trị hành động
             target_q1 = self.target_critic1(next_states, next_actions)
             target_q2 = self.target_critic2(next_states, next_actions)
             target_q = torch.min(target_q1, target_q2) - self.alpha * next_log_probs
@@ -290,7 +292,7 @@ class Environment:
     def __init__(self):
         state_dim = 6
         action_dim = 1
-        learningrate = 1e-4
+        learningrate = 1e-5
         discount = 0.995
-        tau = 0.01
+        tau = 0.005
         self.agent = SACAgent(state_dim, action_dim, learningrate, discount, tau)

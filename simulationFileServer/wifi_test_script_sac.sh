@@ -23,8 +23,8 @@ declare -a filArr=("2MB")
 declare -a bgrArr=("0")
 # declare -a frqArr=("1" "2" "4" "6" "8" "10" "12" "14" "16" "18") #change to k
 declare -a frqArr=("10") #change to k
-declare -a bwdArr=("10") #bandwidth
-declare -a owdArr=("10") #one-way delay
+declare -a bwdArr=("5" "10") #bandwidth
+declare -a owdArr=("10" "20") #one-way delay
 declare -a varArr=("10") #variation delay
 declare -a losArr=("1") #pkt loss 
 # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
@@ -41,7 +41,7 @@ do
             do 
                 for frq in "${frqArr[@]}"
                 do
-                    echo -e "${frq}\n0.3" > ./config/sac 
+                    echo -e "${frq}\n0.2" > ./config/sac 
                     for bwd in "${bwdArr[@]}"
                     do 
                         for owd in "${owdArr[@]}"

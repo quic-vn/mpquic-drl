@@ -768,7 +768,7 @@ func (sch *scheduler) GetStateAndRewardSAC(s *session, pth *path) {
 		if uint16(sch.Alpha) < 6 {
 			k = uint16(sch.Alpha)
 		} else {
-			k = uint16(sch.Alpha) - 2
+			k = uint16(sch.Alpha) - 5
 		}
 		if rewardPayload.CountReward >= k {
 			rewardPayload.Reward = rewardPayload.Reward / float64(rewardPayload.CountReward)
