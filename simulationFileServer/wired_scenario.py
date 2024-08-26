@@ -31,7 +31,7 @@ class LinuxRouter(Node):
         super(LinuxRouter, self).terminate()
 
 def runClient(station, id, client_cmd):
-    for i in range(100):
+    for i in range(3):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)

@@ -49,7 +49,7 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(30):
+    for i in range(500):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
@@ -84,26 +84,24 @@ def configClient(sta, id):
     sta.cmd("ip route add default via 192.168.2.2 table 1")
     sta.cmd("ip route add default via 172.16.0.2 table 2")
 
-def background_traffic(client1, server1, frequency, stop_event):
-    # Wait a bit to ensure the network is fully started
-    # server1.cmd("iperf3 -s -p 5201")
-    #time.sleep(5)
-    while not stop_event.is_set():
-        # client1.cmd("iperf -c 192.168.5.4 -p 5201 -B 192.168.5.3 -V -t 9 > ./logs/bg.logs")
-        server1.cmd("ping -c 1 192.168.5.2")
-        client1.cmd("ping -c 1 192.168.5.2")
-        time.sleep(frequency)
-
+#               wlan1-ap1-eth2     (192.168.2.2/24) eth1-r0-eth2 (10.0.1.2/24)  (10.0.1.1/24)-eth2
+#   sta3                                                                                          s1-eth1 (10.0.0.1/24)      (10.0.0.20/24) eth1-h1
+#               wlan1-ap2-eth2     (172.16.0.2/12)  eth1-r1-eth2 (10.0.2.2/24)  (10.0.2.1/24)-eth3
 def topology(args, server_cmd, client_cmd):
     net = Mininet_wifi(controller=Controller, link=wmediumd, wmediumd_mode=interference, fading_cof=3)
 
     info("*** Creating nodes\n")
-    h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/8', defaultRoute='10.0.0.2')
-    s1 = net.addSwitch('s1', mac='00:00:00:00:00:02')
+    h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/24', defaultRoute='10.0.0.1')
+    
+    # Thay switch s1 bằng router s1
+    s1 = net.addHost('s1', cls=LinuxRouter, ip='10.0.0.1/24')  # Router s1 có IP chính là 10.0.0.1/8
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='55,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='45,50,0')
-    #ax2: channel 1; g,n2: channel 1-6; a: channel 36-40
+    r1 = net.addHost('r1', cls=LinuxRouter, ip='172.16.0.2/12')
+
+    # ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='55,50,0', datapath='user')
+    # ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='45,50,0', datapath='user')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='25,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='75,50,0')
     stations = []
     for i in range(3, 3 + int(args.clt)):
         if args.mdl == 'mobi':
@@ -111,7 +109,7 @@ def topology(args, server_cmd, client_cmd):
             stations.append(sta)
         elif args.mdl == 'none': #same place
             x = 50
-            y = 70
+            y = 50
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
             stations.append(sta)
         elif args.mdl == 'dif1': 
@@ -134,20 +132,17 @@ def topology(args, server_cmd, client_cmd):
     net.configureWifiNodes()
 
     info("*** Associating and Creating links\n")
-    net.addLink(h1, s1, bw=300, use_hfsc=True)
-    net.addLink(ap1, r0, intfName2='r0-eth1', use_hfsc=True, params2={'ip': '192.168.2.2/24'})
-    net.addLink(ap2, r0, intfName2='r0-eth2', use_hfsc=True, params2={'ip': '172.16.0.2/12'})
-    net.addLink(s1, r0, intfName2='r0-eth3', use_hfsc=True, params2={'ip': '10.0.0.2/8'})
 
-    if with_background == 1:
-        server1 = net.addHost('server1', mac='01:00:00:00:00:01', ip='192.168.5.4/24', defaultRoute='192.168.5.2')
-        client1 = net.addHost('client1', mac='01:00:00:00:00:02', ip='192.168.5.3/24', defaultRoute='192.168.5.2')
-        net.addLink(server1, s1, bw=300, use_hfsc=True)
-        net.addLink(client1, r0, intfName2='r0-eth4', params2={'ip': '192.168.5.2/24'})
+    net.addLink(h1, s1, intfName2='s1-eth1', use_hfsc=True, params2={'ip': '10.0.0.1/24'})
+    # net.addLink(ap1, r0, intfName1='ap1-eth2', intfName2='r0-eth1', use_hfsc=True, params1={'ip': '192.168.2.1/24'}, params2={'ip': '192.168.2.2/24'})
+    # net.addLink(ap2, r1, intfName1='ap2-eth2', intfName2='r1-eth1', use_hfsc=True, params1={'ip': '172.16.0.1/12'}, params2={'ip': '172.16.0.2/12'})
+    net.addLink(ap1, r0, intfName1='ap1-eth2', intfName2='r0-eth1', use_hfsc=True, params2={'ip': '192.168.2.2/24'})
+    net.addLink(ap2, r1, intfName1='ap2-eth2', intfName2='r1-eth1', use_hfsc=True, params2={'ip': '172.16.0.2/12'})
 
-        client1.cmd("ip rule add from 192.168.5.3/24 table 1")
-        client1.cmd("ip route add default nexthop via 192.168.5.2 dev client-eth0 weight 1")
-        client1.cmd("ip route add default via 192.168.5.2 table 1")
+    net.addLink(s1, r0, intfName1='s1-eth2', intfName2='r0-eth2', use_hfsc=True, params1={'ip': '10.0.1.1/24'}, params2={'ip': '10.0.1.2/24'})
+    net.addLink(s1, r1, intfName1='s1-eth3', intfName2='r1-eth2', use_hfsc=True, params1={'ip': '10.0.2.1/24'}, params2={'ip': '10.0.2.2/24'})
+    
+    # CLI(net)
 
     info("*** Starting network\n")
     # if '-p' not in args:
@@ -157,95 +152,73 @@ def topology(args, server_cmd, client_cmd):
         net.setMobilityModel(time=0, model='TruncatedLevyWalk', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
 
     net.build()
+    # CLI(net)
 
     for i, sta in enumerate(stations, start=3):
         configClient(sta, i)
+        # CLI(net)
 
-    h1.cmd('ip route add default via 10.0.0.2')
+    h1.cmd('ip route add default via 10.0.0.1')
+    s1.cmd('ip route add default via 10.0.1.2')
+    s1.cmd('ip route add 192.168.2.0/24 via 10.0.1.2 dev s1-eth2')
+    s1.cmd('ip route add 172.16.0.0/12 via 10.0.2.2 dev s1-eth3')
+
+    r0.cmd('ip route add default via 10.0.1.1')
+    r1.cmd('ip route add default via 10.0.2.1')
+
     c1.start()
     ap1.start([c1])
     ap2.start([c1])
-    s1.start([c1])
 
-    if with_background == 1:
-        r0.cmd('tcdel r0-eth1 --all')
-        r0.cmd('tcset r0-eth1 --rate 10Mbps')
-        r0.cmd('tcset r0-eth2 --rate {}Mbps'.format(args.bwd))
-        ap1.cmd('tcset ap1-eth2 --rate 10Mbps')
-        ap2.cmd('tcset ap2-eth2 --rate {}Mbps'.format(args.bwd))
+    r0.cmd('tcdel r0-eth1 --all')
+    r0.cmd('tcdel r0-eth2 --all')
+    r1.cmd('tcdel r1-eth1 --all')
+    r1.cmd('tcdel r1-eth2 --all')
+    s1.cmd('tcdel s1-eth2 --all')
+    s1.cmd('tcdel s1-eth3 --all')
+    if int(args.var) == 0:
+        # r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms')
+        # r1.cmd('tcset r1-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
+        # s1.cmd('tcset s1-eth2 --rate 50Mbps --delay 15ms')
+        # s1.cmd('tcset s1-eth3 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
 
-        # Start background traffic in a separate thread after network is fully up
-        bg_thread = threading.Thread(target=background_traffic, args=(client1, server1, float(args.freq), stop_event))
-        bg_thread.daemon = True
-        bg_thread.start()
+        r0.cmd('tc qdisc add dev r0-eth2 root netem limit 1000 delay 15ms rate 50Mbit')
+        r1.cmd('tc qdisc add dev r1-eth2 root netem limit 1000 delay {}ms rate {}Mbit'.format(args.owd, args.bwd))
+        s1.cmd('tc qdisc add dev s1-eth2 root netem limit 1000 delay 15ms rate 50Mbit')
+        s1.cmd('tc qdisc add dev s1-eth3 root netem limit 1000 delay {}ms rate {}Mbit'.format(args.owd, args.bwd))
     else:
-        if int(args.var) == 0:
-            r0.cmd('tcdel r0-eth1 --all')
-            r0.cmd('tcdel r0-eth2 --all')
-            r0.cmd('tcset r0-eth1 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-            r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms')
-            ap1.cmd('tcset ap1-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-            ap2.cmd('tcset ap2-eth2 --rate 50Mbps --delay 15ms')
+        varrate1 = 15.0 * float(args.var) / 100
+        varrate2 = float(args.owd) * float(args.var) / 100
+        # r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate1, args.los))
+        # r1.cmd('tcset r1-eth2 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate2, args.los))
+        # s1.cmd('tcset s1-eth2 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate1, args.los))
+        # s1.cmd('tcset s1-eth3 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate2, args.los))
 
-            # r0.cmd('tc qdisc del root dev r0-eth1')
-            # r0.cmd('tc qdisc del root dev r0-eth2')
-            # r0.cmd('tc qdisc add dev r0-eth1 root handle 5:0 hfsc default 1')
-            # r0.cmd('tc class add dev r0-eth1 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
-            # r0.cmd('tc qdisc add dev r0-eth1 parent 5:1 netem delay {}ms'.format(args.owd))
+        # r0.cmd('tc qdisc add dev r0-eth2 root netem limit 1000 delay 15ms 1.5ms loss 1% 50% rate 50Mbit')
+        # r1.cmd('tc qdisc add dev r1-eth2 root netem limit 1000 delay {}ms {}ms loss {}% 50% rate {}Mbit'.format(args.owd, varrate2, args.los, args.bwd))
+        # s1.cmd('tc qdisc add dev s1-eth2 root netem limit 1000 delay 15ms 1.5ms loss 1% 50% rate 50Mbit')
+        # s1.cmd('tc qdisc add dev s1-eth3 root netem limit 1000 delay {}ms {}ms loss {}% 50% rate {}Mbit'.format(args.owd, varrate2, args.los, args.bwd))
 
-            # r0.cmd('tc qdisc add dev r0-eth2 root handle 5:0 hfsc default 1')
-            # r0.cmd('tc class add dev r0-eth2 parent 5:0 classid 5:1 hfsc sc rate 5Mbit')
-            # r0.cmd('tc qdisc add dev r0-eth2 parent 5:1 netem delay 20ms')
+        r0.cmd('tc qdisc add dev r0-eth2 root handle 5:0 hfsc default 1')
+        r0.cmd('tc class add dev r0-eth2 parent 5:0 classid 5:1 hfsc sc rate 50Mbit')
+        r0.cmd('tc qdisc add dev r0-eth2 parent 5:1 netem delay 15ms 1.5ms 75% loss 1% 50%')
 
-            # ap1.cmd('tc qdisc del root dev ap1-eth2')
-            # ap1.cmd('tc qdisc add dev ap1-eth2 root handle 5:0 hfsc default 1')
-            # ap1.cmd('tc class add dev ap1-eth2 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
-            # ap1.cmd('tc qdisc add dev ap1-eth2 parent 5:1 netem delay {}ms'.format(args.owd))
+        r1.cmd('tc qdisc add dev r1-eth2 root handle 5:0 hfsc default 1')
+        r1.cmd('tc class add dev r1-eth2 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+        r1.cmd('tc qdisc add dev r1-eth2 parent 5:1 netem delay {}ms {}ms 75% loss {}% 50%'.format(args.owd, varrate2, args.los))
 
-            # ap2.cmd('tc qdisc del root dev ap2-eth2')
-            # ap2.cmd('tc qdisc add dev ap2-eth2 root handle 5:0 hfsc default 1')
-            # ap2.cmd('tc class add dev ap2-eth2 parent 5:0 classid 5:1 hfsc sc rate 5Mbit')
-            # ap2.cmd('tc qdisc add dev ap2-eth2 parent 5:1 netem delay 20ms')
-        else:
-            varrate1 = 15.0 * float(args.var) / 100
-            varrate2 = float(args.owd) * float(args.var) / 100
-            r0.cmd('tcdel r0-eth1 --all')
-            r0.cmd('tcdel r0-eth2 --all')
-            r0.cmd('tcset r0-eth1 --rate {}Mbps --delay {}ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(args.bwd, args.owd, varrate2, args.los))
-            r0.cmd('tcset r0-eth2 --rate 50Mbps --delay 15ms --delay-distro {} --delay-distribution pareto --loss {}%'.format(varrate2, args.los))
-            ap2.cmd('tcset ap1-eth2 --rate {}Mbps --delay {}ms'.format(args.bwd, args.owd))
-            ap1.cmd('tcset ap2-eth2 --rate 50Mbps --delay 15ms')
+        s1.cmd('tc qdisc add dev s1-eth2 root handle 5:0 hfsc default 1')
+        s1.cmd('tc class add dev s1-eth2 parent 5:0 classid 5:1 hfsc sc rate 50Mbit')
+        s1.cmd('tc qdisc add dev s1-eth2 parent 5:1 netem delay 15ms 1.5ms 75% loss 1% 50%')
 
-            # r0.cmd('tc qdisc del root dev r0-eth1')
-            # r0.cmd('tc qdisc del root dev r0-eth2')
-            # r0.cmd('tc qdisc add dev r0-eth1 root handle 5:0 hfsc default 1')
-            # r0.cmd('tc class add dev r0-eth1 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
-            # r0.cmd('tc qdisc add dev r0-eth1 parent 5:1 netem delay {}ms 1ms 75%'.format(args.owd))
-
-            # r0.cmd('tc qdisc add dev r0-eth2 root handle 5:0 hfsc default 1')
-            # r0.cmd('tc class add dev r0-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
-            # r0.cmd('tc qdisc add dev r0-eth2 parent 5:1 netem delay 15ms 1.5ms 75%')
-
-            # ap1.cmd('tc qdisc del root dev ap1-eth2')
-            # ap1.cmd('tc qdisc add dev ap1-eth2 root handle 5:0 hfsc default 1')
-            # ap1.cmd('tc class add dev ap1-eth2 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
-            # ap1.cmd('tc qdisc add dev ap1-eth2 parent 5:1 netem delay {}ms 1ms 75%'.format(args.owd))
-
-            # ap2.cmd('tc qdisc del root dev ap2-eth2')
-            # ap2.cmd('tc qdisc add dev ap2-eth2 root handle 5:0 hfsc default 1')
-            # ap2.cmd('tc class add dev ap2-eth2 parent 5:0 classid 5:1 hfsc sc rate 55Mbit ul rate 60Mbit')
-            # ap2.cmd('tc qdisc add dev ap2-eth2 parent 5:1 netem delay 15ms 1.5ms 75%')
-
-            # r0.cmd("tc qdisc add dev r0-eth1 root netem limit 1000 delay {0}ms 1ms 75% loss 0.5 50% rate {1}Mbit".format(args.owd, args.bwd))
-            # r0.cmd("tc qdisc add dev r0-eth2 root netem limit 1000 delay 15ms 1.5ms 75% loss 0.5 50% rate 50Mbit")
-
-            # ap1.cmd("tc qdisc add dev ap1-eth2 root netem limit 1000 delay {0}ms 1ms 75% loss 0.5 50% rate {1}Mbit".format(args.owd, args.bwd))
-            # ap2.cmd("tc qdisc add dev ap2-eth2 root netem limit 1000 delay 15ms 1.5ms 75% loss 0.5 50% rate 50Mbit")
+        s1.cmd('tc qdisc add dev s1-eth3 root handle 5:0 hfsc default 1')
+        s1.cmd('tc class add dev s1-eth3 parent 5:0 classid 5:1 hfsc sc rate {}Mbit'.format(args.bwd))
+        s1.cmd('tc qdisc add dev s1-eth3 parent 5:1 netem delay {}ms {}ms 75% loss {}% 50%'.format(args.owd, varrate2, args.los))
 
     # print(args)
     print(server_cmd.format(num=args.clt))
     # print(client_cmd)
-    CLI(net)
+    # CLI(net)
     h1.sendCmd(server_cmd.format(num=args.clt))
     time.sleep(10)
     global global_variable
@@ -264,10 +237,6 @@ def topology(args, server_cmd, client_cmd):
     h1.monitor()
     h1.waiting = False
 
-    # Signal the background traffic thread to stop and wait for it to finish
-    stop_event.set()
-    if with_background == 1:
-        bg_thread.join()
     # CLI(net)
 
     info("*** Stopping network\n")

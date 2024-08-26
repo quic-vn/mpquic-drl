@@ -17,18 +17,20 @@ do
     cp "clientMPQUIC" "clientMPQUIC$i"
 done
 
+echo -e "0.3\n0.5\n0.5\n0.4\n0.4\n0.0" > ./config/qsat 
+
 declare -a mdlArr=("none") #("none" "dif1" "dif2" "mobi")
 declare -a numArr=("1") #("1" "3" "5")
 declare -a filArr=("2MB") 
 declare -a bgrArr=("0")
 declare -a frqArr=("0")
-declare -a bwdArr=("10") #bandwidth
-declare -a owdArr=("10") #one-way delay
-declare -a varArr=("10") #variation delay
-declare -a losArr=("1") #pkt loss 
+declare -a bwdArr=("5" "10" "30") #bandwidth
+declare -a owdArr=("10" "15") #one-way delay
+declare -a varArr=("0") #variation delay
+declare -a losArr=("0") #pkt loss 
 # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
 # declare -a schArr=("rtt")
-declare -a schArr=("fuzzyqsat")
+declare -a schArr=("rtt" "fuzzyqsat" "sac")
 
 for mdl in "${mdlArr[@]}"
 do 
@@ -51,7 +53,7 @@ do
                                     for sch in "${schArr[@]}"
                                     do
                                         echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
-                                        sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+                                        sudo -E env "PATH=$PATH" python wifi_scenario2.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
@@ -113,7 +115,7 @@ do
                                     for sch in "${schArr[@]}"
                                     do
                                         echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
-                                        sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+                                        sudo -E env "PATH=$PATH" python wifi_scenario2.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   

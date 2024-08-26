@@ -29,7 +29,7 @@ declare -a varArr=("10") #variation delay
 declare -a losArr=("1") #pkt loss 
 # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
 # declare -a schArr=("rtt")
-declare -a schArr=("fuzzyqsat" "rtt")
+declare -a schArr=("fuzzyqsat")
 
 for mdl in "${mdlArr[@]}"
 do 
@@ -71,48 +71,48 @@ do
     done
 done
 
-declare -a varArr=("10") #variation delay
-declare -a losArr=("1") #pkt loss 
-# declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
-# declare -a schArr=("rtt")
-declare -a schArr=("fuzzyqsat" "rtt")
+# declare -a varArr=("10") #variation delay
+# declare -a losArr=("1") #pkt loss 
+# # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
+# # declare -a schArr=("rtt")
+# declare -a schArr=("fuzzyqsat")
 
-for mdl in "${mdlArr[@]}"
-do 
-    for num in "${numArr[@]}"
-    do 
-        for fil in "${filArr[@]}"
-        do
-            for bgr in "${bgrArr[@]}"
-            do 
-                for frq in "${frqArr[@]}"
-                do
-                    echo -e "0.3\n0.5\n0.5\n0.4\n${frq}\n1.0" > ./config/qsat 
-                    for bwd in "${bwdArr[@]}"
-                    do 
-                        for owd in "${owdArr[@]}"
-                        do
-                            for var in "${varArr[@]}"
-                            do
-                                for los in "${losArr[@]}"
-                                do 
-                                    for sch in "${schArr[@]}"
-                                    do
-                                        echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
-                                        sudo -E env "PATH=$PATH" python wired_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
-                                        sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
-                                        sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
-                                        sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
+# for mdl in "${mdlArr[@]}"
+# do 
+#     for num in "${numArr[@]}"
+#     do 
+#         for fil in "${filArr[@]}"
+#         do
+#             for bgr in "${bgrArr[@]}"
+#             do 
+#                 for frq in "${frqArr[@]}"
+#                 do
+#                     echo -e "0.3\n0.5\n0.5\n0.4\n${frq}\n1.0" > ./config/qsat 
+#                     for bwd in "${bwdArr[@]}"
+#                     do 
+#                         for owd in "${owdArr[@]}"
+#                         do
+#                             for var in "${varArr[@]}"
+#                             do
+#                                 for los in "${losArr[@]}"
+#                                 do 
+#                                     for sch in "${schArr[@]}"
+#                                     do
+#                                         echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
+#                                         sudo -E env "PATH=$PATH" python wired_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+#                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
+#                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
+#                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   
    
-                                        sudo mn -c
-                                        sleep 10
-                                    done
-                                done
-                            done
-                        done
-                    done
-                done
-            done
-        done
-    done
-done
+#                                         sudo mn -c
+#                                         sleep 10
+#                                     done
+#                                 done
+#                             done
+#                         done
+#                     done
+#                 done
+#             done
+#         done
+#     done
+# done

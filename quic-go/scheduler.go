@@ -517,6 +517,44 @@ pathLoop:
 			cwnd[pathID] = pth.sentPacketHandler.GetCongestionWindow()
 			inp[pathID] = pth.sentPacketHandler.GetBytesInFlight()
 		}
+
+		f_sendingRate := 0.0
+		s_sendingRate := 0.0
+		if float64(lRTT[1]) > 0 {
+			f_sendingRate = (float64(cwnd[1]) / float64(lRTT[1])) / (float64(cwnd[1])/float64(lRTT[1]) + float64(cwnd[3])/float64(lRTT[3]))
+		}
+		if float64(lRTT[3]) > 0 {
+			s_sendingRate = (float64(cwnd[3]) / float64(lRTT[3])) / (float64(cwnd[1])/float64(lRTT[1]) + float64(cwnd[3])/float64(lRTT[3]))
+		}
+
+		var f_cLevel, s_cLevel int8
+
+		if f_sendingRate < sch.clv_state[0] {
+			f_cLevel = 0
+		} else if f_sendingRate < sch.clv_state[1] {
+			f_cLevel = 1
+		} else if f_sendingRate < sch.clv_state[2] {
+			f_cLevel = 2
+		} else if f_sendingRate < sch.clv_state[3] {
+			f_cLevel = 3
+		} else {
+			f_cLevel = 4
+		}
+
+		if s_sendingRate < sch.clv_state[0] {
+			s_cLevel = 0
+		} else if s_sendingRate < sch.clv_state[1] {
+			s_cLevel = 1
+		} else if s_sendingRate < sch.clv_state[2] {
+			s_cLevel = 2
+		} else if s_sendingRate < sch.clv_state[3] {
+			s_cLevel = 3
+		} else {
+			s_cLevel = 4
+		}
+		//log state
+
+		sch.countState[f_cLevel][s_cLevel]++
 		sch.csvwriter_state.Write([]string{
 			// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
 			fmt.Sprintf("%.2f", float64(cwnd[1])/1024),
@@ -1208,10 +1246,14 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 		}
 
 	}
-
-	f_sendingRate := (float64(cwnd[firstPath]) / float64(lRTT[firstPath])) / (float64(cwnd[firstPath])/float64(lRTT[firstPath]) + float64(cwnd[secondPath])/float64(lRTT[secondPath]))
-	s_sendingRate := (float64(cwnd[secondPath]) / float64(lRTT[secondPath])) / (float64(cwnd[firstPath])/float64(lRTT[firstPath]) + float64(cwnd[secondPath])/float64(lRTT[secondPath]))
-
+	f_sendingRate := 0.0
+	s_sendingRate := 0.0
+	if float64(lRTT[firstPath]) > 0 {
+		f_sendingRate = (float64(cwnd[firstPath]) / float64(lRTT[firstPath])) / (float64(cwnd[firstPath])/float64(lRTT[firstPath]) + float64(cwnd[secondPath])/float64(lRTT[secondPath]))
+	}
+	if float64(lRTT[secondPath]) > 0 {
+		s_sendingRate = (float64(cwnd[secondPath]) / float64(lRTT[secondPath])) / (float64(cwnd[firstPath])/float64(lRTT[firstPath]) + float64(cwnd[secondPath])/float64(lRTT[secondPath]))
+	}
 	//fmt.Println(firstPath, f_sendingRate, secondPath, s_sendingRate)
 
 	var f_cLevel, s_cLevel int8
