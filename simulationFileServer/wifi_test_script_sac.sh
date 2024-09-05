@@ -22,10 +22,10 @@ declare -a numArr=("1") #("1" "4" "8")
 declare -a filArr=("2MB") 
 declare -a bgrArr=("0")
 # declare -a frqArr=("1" "2" "4" "6" "8" "10" "12" "14" "16" "18") #change to k
-declare -a frqArr=("10") #change to k
-declare -a bwdArr=("5" "10") #bandwidth
-declare -a owdArr=("10" "20") #one-way delay
-declare -a varArr=("10") #variation delay
+declare -a frqArr=("100") #change to k
+declare -a bwdArr=("30") #bandwidth
+declare -a owdArr=("10") #one-way delay
+declare -a varArr=("20") #variation delay
 declare -a losArr=("1") #pkt loss 
 # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
 # declare -a schArr=("rtt")
@@ -53,7 +53,7 @@ do
                                     for sch in "${schArr[@]}"
                                     do
                                         echo "$mdl-$num-$fil-$bgr-$frq-$bwd-$owd-$var-$los-$sch"
-                                        sudo -E env "PATH=$PATH" python wifi_scenario.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
+                                        sudo -E env "PATH=$PATH" python wifi_scenario2.py --model ${mdl} --client ${num} --file ${fil} --background ${bgr} --frequency ${frq} --bandwidth ${bwd} --delay ${owd} --variation ${var} --loss ${los} --scheduler ${sch} 
                                         sudo mv ./logs/server.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-server.logs
                                         sudo mv ./logs/client.logs ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-client.logs
                                         sudo mv ./logs/result3.csv ./output/${mdl}-${num}-${fil}-${bgr}-${frq}-${bwd}-${owd}-${var}-${los}-${sch}-result3.csv   

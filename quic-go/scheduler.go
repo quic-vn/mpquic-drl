@@ -248,7 +248,7 @@ func (sch *scheduler) setup() {
 		sch.list_State_DQN = make(map[State]StateDQN)
 		sch.list_Action_DQN = make(map[State]float64)
 		sch.model_id = TMP_ModelID
-		fmt.Println("Check_K: ", sch.Alpha)
+		// fmt.Println("Check_K: ", sch.Alpha)
 		sch.count_Action = 0
 		// modelType := map[string]string{"model_type": "sac", "model_id": string(sch.model_id)}
 		setModel("sac", sch.model_id)
@@ -1784,6 +1784,7 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 	sRTT := make(map[protocol.PathID]time.Duration)
 	restranNumber := make(map[protocol.PathID]uint64)
 	pktNumber := make(map[protocol.PathID]uint64)
+	lostNumber := make(map[protocol.PathID]uint64)
 	cwnd := make(map[protocol.PathID]protocol.ByteCount)
 
 	// Provide some logging if it is the last packet
@@ -1804,23 +1805,26 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					utils.Infof("Congestion Window: %d", cwnd[pathID])
 					restranNumber[pathID] = sntRetrans
 					pktNumber[pathID] = sntPkts
+					lostNumber[pathID] = sntLost
 				}
 
-				if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
-					var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
-					multiclients.S2.Remove(connID)
-					// utils.Infof("countSession: %d", multiclients.NumSession)
-				}
+				// if sch.SchedulerName == "multiclients" || sch.SchedulerName == "sacmulti" {
+				// 	var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+				// 	multiclients.S2.Remove(connID)
+				// 	// utils.Infof("countSession: %d", multiclients.NumSession)
+				// }
+				var connID string = strconv.FormatUint(uint64(s.connectionID), 10)
+				multiclients.S2.Remove(connID)
 				//logs
 				if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.csvwriter_flag {
 					sch.csvwriter_statistic.Write([]string{
 						// fmt.Sprintf("%.0f %.0f", float64(firstPath), float64(secondPath)),
-						fmt.Sprintf("%.3f", float64(cwnd[1])),
 						fmt.Sprintf("%.3f", float64(sRTT[1].Nanoseconds())/1000000),
 						fmt.Sprintf("%.3f", 100*float64(restranNumber[1])/float64(pktNumber[1])),
-						fmt.Sprintf("%.3f", float64(cwnd[3])),
+						fmt.Sprintf("%.3f", 100*float64(lostNumber[1])/float64(pktNumber[1])),
 						fmt.Sprintf("%.3f", float64(sRTT[3].Nanoseconds())/1000000),
 						fmt.Sprintf("%.3f", 100*float64(restranNumber[3])/float64(pktNumber[3])),
+						fmt.Sprintf("%.3f", 100*float64(lostNumber[3])/float64(pktNumber[3])),
 					})
 					sch.csvwriter_statistic.Flush()
 					sch.csvwriter_flag = false

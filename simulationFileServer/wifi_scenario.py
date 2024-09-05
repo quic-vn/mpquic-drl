@@ -49,7 +49,7 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(30):
+    for i in range(200):
         print(client_cmd.format(id=id))
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
@@ -154,7 +154,7 @@ def topology(args, server_cmd, client_cmd):
     #     net.plotGraph(max_x = 100, max_y = 100)
 
     if args.mdl == 'mobi':
-        net.setMobilityModel(time=0, model='TruncatedLevyWalk', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
+        net.setMobilityModel(time=0, model='TruncatedLevyWalk', max_x=100, max_y=100, seed=20, min_v=2, max_v=4, velocity=(2., 4.), FL_MAX=200., alpha=0.5, variance=4.)
 
     net.build()
 

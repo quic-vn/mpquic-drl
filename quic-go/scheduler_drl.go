@@ -136,7 +136,7 @@ func setModel(modelType string, modelID uint64) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusOK {
-		fmt.Println("Model set to SAC successfully", resp.Status)
+		fmt.Println("Model set to SAC successfully", resp.Body)
 	} else {
 		fmt.Println("Failed to set model:", resp.Status)
 	}

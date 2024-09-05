@@ -2,3 +2,4 @@ simulationFileServer/output/*
 simulation/output/*
 simulationFileServer/clientMP*
 simulationFileServer/serverMP*
+simulationFileServer/www/files/*

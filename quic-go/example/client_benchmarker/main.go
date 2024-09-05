@@ -70,6 +70,8 @@ func main() {
 	multipath := flag.Bool("m", false, "multipath")
 	output := flag.String("o", "", "logging output")
 	cache := flag.Bool("c", false, "cache handshake information")
+	bulk := flag.Bool("b", false, "bulkfile for throughput")
+
 	flag.Parse()
 	urls := flag.Args()
 
@@ -100,55 +102,119 @@ func main() {
 		CacheHandshake: *cache,
 	}
 
-	processInterfaces()
+	// processInterfaces() (get txbitrate from client, then sent to server via ACK packet)
 
 	hclient := &http.Client{
 		Transport: &h2quic.RoundTripper{QuicConfig: quicConfig, TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
 	}
+	if !*bulk {
+		var wg sync.WaitGroup
+		for i := 0; i < *num; i++ {
+			wg.Add(len(urls))
+			for _, addr := range urls {
+				utils.Infof("GET %s", addr)
+				go func(addr string) {
+					defer wg.Done()
 
-	var wg sync.WaitGroup
-	for i := 0; i < *num; i++ {
-		wg.Add(len(urls))
-		for _, addr := range urls {
-			utils.Infof("GET %s", addr)
-			go func(addr string) {
-				defer wg.Done()
+					start := time.Now()
+					rsp, err := hclient.Get(addr)
+					if err != nil {
+						log.Println("Error getting response:", err)
+						return
+					}
+					defer rsp.Body.Close()
 
-				start := time.Now()
-				rsp, err := hclient.Get(addr)
-				if err != nil {
-					log.Println("Error getting response:", err)
-					return
-				}
-				defer rsp.Body.Close()
-
-				body := &bytes.Buffer{}
-				_, err = io.Copy(body, rsp.Body)
-				if err != nil {
-					log.Println("Error copying response body:", err)
-					utils.Infof("%f", float64(30000))
-					csvwriter.Write([]string{fmt.Sprint(float64(30000))})
-					csvwriter.Flush()
-				} else {
-					elapsed := time.Since(start)
-					utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
-					csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
-					csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-				}
-			}(addr)
+					body := &bytes.Buffer{}
+					_, err = io.Copy(body, rsp.Body)
+					if err != nil {
+						log.Println("Error copying response body:", err)
+						utils.Infof("%f", float64(30000))
+						csvwriter.Write([]string{fmt.Sprint(float64(30000))})
+						csvwriter.Flush()
+					} else {
+						elapsed := time.Since(start)
+						utils.Infof("%f", float64(elapsed.Nanoseconds())/1000000)
+						csvwriter.Write([]string{fmt.Sprint(float64(elapsed.Nanoseconds()) / 1000000)})
+						csvwriter.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+					}
+				}(addr)
+			}
+			wg.Wait()
+			if i > 1 {
+				sendTrainSignal2()
+			}
+			// processInterfaces()
+			// time.Sleep(time.Duration(*sleeptime) * time.Second)
+			time.Sleep(time.Duration(*sleeptime) * time.Millisecond)
 		}
+		// Thêm waitgroup cho sendTrainSignal
+		wg.Add(1)
+		go sendTrainSignal(&wg)
 		wg.Wait()
-		if i > 1 {
-			sendTrainSignal2()
+	} else {
+		var wg sync.WaitGroup
+		for i := 0; i < *num; i++ {
+			wg.Add(len(urls))
+			for _, addr := range urls {
+				go func(addr string) {
+					defer wg.Done()
+
+					// Tạo ticker để ghi log mỗi giây
+					ticker := time.NewTicker(1 * time.Second)
+					defer ticker.Stop()
+
+					// Bắt đầu tải dữ liệu
+					start := time.Now()
+					rsp, err := hclient.Get(addr)
+					if err != nil {
+						log.Println("Error getting response:", err)
+						return
+					}
+					defer rsp.Body.Close()
+
+					// Đọc từng chunk dữ liệu và tính toán lượng dữ liệu tải được
+					var totalBytes int64 = 0
+					buf := make([]byte, 1024*1024) // Đọc từng chunk 1MB
+					done := make(chan struct{})
+
+					go func() {
+						for {
+							select {
+							case <-ticker.C:
+								// Ghi ra lượng dữ liệu tải được mỗi giây
+								elapsed := time.Since(start).Seconds()
+								log.Printf("Đã tải được: %d bytes sau %f giây\n", totalBytes, elapsed)
+								csvwriter.Write([]string{fmt.Sprintf("%d", totalBytes)})
+								csvwriter.Flush()
+								sendTrainSignal2()
+							case <-done:
+								return
+							}
+						}
+					}()
+
+					for {
+						n, err := rsp.Body.Read(buf)
+						if n > 0 {
+							totalBytes += int64(n)
+						}
+						if err != nil {
+							if err == io.EOF {
+								break
+							}
+							log.Println("Error reading response body:", err)
+							return
+						}
+					}
+					done <- struct{}{} // Kết thúc việc ghi log
+					elapsed := time.Since(start)
+					log.Printf("Tổng số bytes đã tải: %d, thời gian: %f giây\n", totalBytes, elapsed.Seconds())
+				}(addr)
+			}
+			wg.Wait()
+			time.Sleep(time.Duration(*sleeptime) * time.Millisecond)
 		}
-		// processInterfaces()
-		// time.Sleep(time.Duration(*sleeptime) * time.Second)
-		time.Sleep(time.Duration(*sleeptime) * time.Millisecond)
 	}
-	// Thêm waitgroup cho sendTrainSignal
-	wg.Add(1)
-	go sendTrainSignal(&wg)
-	wg.Wait()
 }
 
 // Hàm để xử lý các giao diện mạng không dây
