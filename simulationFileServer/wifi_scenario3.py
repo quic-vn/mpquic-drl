@@ -19,19 +19,14 @@ from mn_wifi.wmediumdConnector import interference
 from mn_wifi.link import wmediumd
 from mn_wifi.node import Station
 
-# SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 12 -b 0.0.0.0:8080 app:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
-# SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 4 -b 0.0.0.0:8080 app:app --log-file ./logs/server-flask.logs --log-level info & ./serverMPQUIC"
-# SERVER_CMD="export PYTHONPATH=../serverdrl && export CLIENT_NUM={num} && uvicorn app_FASTAPI:app --host 0.0.0.0 --port 8080 --log-level debug > ./logs/server-uvicorn.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD = "python ../serverdrl/app.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD_SACMULTI = "python ../serverdrl/app_multi.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD_SACMULTIJOINCC = "python ../serverdrl/app_multiJoinCC.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD = "./serverMPQUIC"
 
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
 ARGS = "-bind :6121 -www ./www/"
 END = ">> ./logs/server.logs 2>&1"
 
-CLIENT_CMD = "./clientMPQUIC{id} -n 1 -t 0 -m -clt {id}"
+CLIENT_CMD = "./clientMPQUIC{id} -n 5 -t 0 -m -clt {id}"
 # CLIENT_CMD = "./clientMPQUIC{id} -n 1 -t 0 -m -b -clt {id}" #for bulk file 
 CLIENT_FIL = "https://10.0.0.20:6121/files/%s-{id}"
 CLIENT_END = ">> ./logs/client.logs 2>&1"
@@ -52,7 +47,7 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(100):
+    for i in range(1):
         print(client_cmd.format(id=id))
         print(station.position)
         station.sendCmd(client_cmd.format(id=id))
@@ -68,6 +63,11 @@ def runClient(station, id, client_cmd):
         if global_flag == True:
             break
     global_flag = True
+    
+def runServer(server, id):
+    server.sendInt()
+    server.monitor()
+    server.waiting = False
 
 def configClient(sta, id):
     sta.cmd("ifconfig sta{id}-wlan0 down".format(id=id))
@@ -95,38 +95,36 @@ def topology(args, server_cmd, client_cmd):
     net = Mininet_wifi(controller=Controller, link=wmediumd, wmediumd_mode=interference, fading_cof=3)
 
     info("*** Creating nodes\n")
+    # Thêm host h1, h2, h3 với cấu hình tương tự nhau
     h1 = net.addHost('h1', mac='00:00:00:00:00:01', ip='10.0.0.20/24', defaultRoute='10.0.0.1')
-    
-    # Thay switch s1 bằng router s1
-    s1 = net.addHost('s1', cls=LinuxRouter, ip='10.0.0.1/24')  # Router s1 có IP chính là 10.0.0.1/8
+    h2 = net.addHost('h2', mac='00:00:00:00:00:02', ip='10.0.3.20/24', defaultRoute='10.0.3.1')
+    h3 = net.addHost('h3', mac='00:00:00:00:00:03', ip='10.0.4.20/24', defaultRoute='10.0.4.1')
+
+    # Các nút khác: router và access point
+    s1 = net.addHost('s1', cls=LinuxRouter, ip='10.0.0.1/24')
     r0 = net.addHost('r0', cls=LinuxRouter, ip='192.168.2.2/24')
     r1 = net.addHost('r1', cls=LinuxRouter, ip='172.16.0.2/12')
 
-    # ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='55,50,0', datapath='user')
-    # ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='45,50,0', datapath='user')
     ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='45,50,0')
     ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='55,50,0')
+    
     stations = []
     model_list = ["mob1", "gm2d", "rwp2d", "rpgm2d", "gm3d", "rwp3d", "rpgm3d"]
     for i in range(3, 3 + int(args.clt)):
         if args.mdl in model_list:
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i)
             stations.append(sta)
-        elif args.mdl == 'none': #same place
+        elif args.mdl == 'none':  # same place
             x = 50
             y = 50
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
             stations.append(sta)
         elif args.mdl == 'dif1': 
-            # x = i * 5
-            # y = i * 5
             x = 75
             y = 75
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
             stations.append(sta)
         elif args.mdl == 'dif2':
-            # x = i * 5
-            # y = 50 - i * 3 * (-1)
             x = 95
             y = 95
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i, position='%d,%d,0' % (x, y))
@@ -141,10 +139,11 @@ def topology(args, server_cmd, client_cmd):
     net.configureWifiNodes()
 
     info("*** Associating and Creating links\n")
-
+    # Liên kết host với router s1
     net.addLink(h1, s1, intfName2='s1-eth1', params2={'ip': '10.0.0.1/24'})
-    # net.addLink(ap1, r0, intfName1='ap1-eth2', intfName2='r0-eth1', use_hfsc=True, params1={'ip': '192.168.2.1/24'}, params2={'ip': '192.168.2.2/24'})
-    # net.addLink(ap2, r1, intfName1='ap2-eth2', intfName2='r1-eth1', use_hfsc=True, params1={'ip': '172.16.0.1/12'}, params2={'ip': '172.16.0.2/12'})
+    net.addLink(h2, s1, intfName2='s1-eth4', params2={'ip': '10.0.3.1/24'})
+    net.addLink(h3, s1, intfName2='s1-eth5', params2={'ip': '10.0.4.1/24'})
+
     net.addLink(ap1, r0, intfName1='ap1-eth2', intfName2='r0-eth1', params2={'ip': '192.168.2.2/24'})
     net.addLink(ap2, r1, intfName1='ap2-eth2', intfName2='r1-eth1', params2={'ip': '172.16.0.2/12'})
 
@@ -169,12 +168,6 @@ def topology(args, server_cmd, client_cmd):
         net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/random_waypoint_2d20.csv")
     elif args.mdl == 'rwp2d':
         net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/reference_point_group_mobility_2d20.csv")
-    # elif args.mdl == 'gm2d':
-    #     net.setMobilityModel(time=0, model='GaussMarkov', max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., FL_MAX=200., alpha=0.5, variance=4.)
-    # elif args.mdl == 'rpgm2d':
-    #     net.setMobilityModel(time=0, model='ReferencePoint', n_groups=2, max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., seed=20)
-    # elif args.mdl == 'rwp2d':
-    #     net.setMobilityModel(time=0, model='RandomWayPoint', max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., FL_MAX=200., alpha=0.5, variance=4.)
 
     net.build()
     # CLI(net)
@@ -184,6 +177,9 @@ def topology(args, server_cmd, client_cmd):
         # CLI(net)
 
     h1.cmd('ip route add default via 10.0.0.1')
+    h2.cmd('ip route add default via 10.0.3.1')
+    h3.cmd('ip route add default via 10.0.4.1')
+
     s1.cmd('ip route add default via 10.0.1.2')
     s1.cmd('ip route add 192.168.2.0/24 via 10.0.1.2 dev s1-eth2')
     s1.cmd('ip route add 172.16.0.0/12 via 10.0.2.2 dev s1-eth3')
@@ -243,25 +239,29 @@ def topology(args, server_cmd, client_cmd):
 
     # print(args)
     print(server_cmd.format(num=args.clt))
-    # print(client_cmd)
     # CLI(net)
     h1.sendCmd(server_cmd.format(num=args.clt))
+    h2.sendCmd(server_cmd.format(num=args.clt))
+    h3.sendCmd(server_cmd.format(num=args.clt))
+
     time.sleep(10)
-    global global_variable
-    global_variable = time.time()
+
+    runClient(stations[0], 3, client_cmd)
+    
+    servers = []
+    servers.append(h1)
+    servers.append(h2)
+    servers.append(h3)
 
     threads = []
-    for i, sta in enumerate(stations, start=3):
-        t = threading.Thread(target=runClient, args=(sta, i, client_cmd))
+    for i, ser in enumerate(servers, start=1):
+        t = threading.Thread(target=runServer, args=(ser, i))
         threads.append(t)
         t.start()
 
     for t in threads:
         t.join()
 
-    h1.sendInt()
-    h1.monitor()
-    h1.waiting = False
 
     # CLI(net)
 
@@ -271,13 +271,8 @@ def topology(args, server_cmd, client_cmd):
 
 def do_training(args):
     global with_background
-    if args.sch == "sac":
-        server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
-    elif args.sch == "sacmulti" or args.sch == "sacrx":
-        server_cmd = " ".join([SERVER_CMD_SACMULTI, CERTPATH, SCH % args.sch, ARGS, END])
-    else:
-        server_cmd = " ".join([SERVER_CMD_SACMULTIJOINCC, CERTPATH, SCH % args.sch, ARGS, END])
-
+    
+    server_cmd = " ".join([SERVER_CMD, CERTPATH, SCH % args.sch, ARGS, END])
     client_cmd = " ".join([CLIENT_CMD, CLIENT_FIL % args.fil, CLIENT_END])
     setLogLevel('info')
     with_background = int(args.bg)  # Set the global variable based on the command-line argument

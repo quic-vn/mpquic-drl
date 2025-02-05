@@ -10,6 +10,7 @@ import (
 	"log"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path"
 	"runtime"
 	"strings"
@@ -98,6 +99,47 @@ func init() {
 				<input type="submit">
 			</form></body></html>`)
 	})
+
+	// Handler mới: /files/2MB-3
+	http.HandleFunc("/files/2MB-3", func(w http.ResponseWriter, r *http.Request) {
+		// 1. Lấy alpha
+		alpha := r.URL.Query().Get("alpha")
+		if alpha == "" {
+			alpha = "not provided"
+		}
+
+		// 2. Ghi log để kiểm tra
+		log.Printf("Request %s with alpha=%s\n", r.URL.Path, alpha)
+
+		// 3. Mở file qsat-aoi để append
+		fileName := "./config/qsat-aoi"
+		f, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			log.Printf("Lỗi mở file %s: %v", fileName, err)
+			// tuỳ bạn: có thể trả về lỗi cho client
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+		defer f.Close()
+
+		// 4. Ghi alpha xuống file
+		// Ví dụ: ghi mỗi alpha trên 1 dòng
+		if _, err := f.WriteString(alpha + "\n"); err != nil {
+			log.Printf("Lỗi ghi alpha vào file: %v", err)
+			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			return
+		}
+
+		// 6. Trả về phản hồi cho client
+		// fmt.Fprintf(w, "You've requested %s with alpha=%s\nSaved alpha to %s\n", r.URL.Path, alpha, fileName)
+
+		// 7. File thực tế: /var/www/files/1MB-3
+		// *www := "/var/www"
+		filePath := path.Join("www", "files", "1MB-3")
+
+		// 8. Trả file cho client
+		http.ServeFile(w, r, filePath)
+	})
 }
 
 func getBuildDir() string {
@@ -136,7 +178,7 @@ func main() {
 	if *scheduler != "dqnAgent" && *wFile != "" {
 		utils.Infof("Ignoring agent files as you selected scheduler %s", *scheduler)
 	}
-	if !*training && *epsilon != 0.{
+	if !*training && *epsilon != 0. {
 		utils.Infof("Agent is not in training mode. Ignoring epsilon argument")
 	}
 	// Init agents
