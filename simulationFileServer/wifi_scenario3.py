@@ -52,8 +52,9 @@ class LinuxRouter(Node):
 
 def runClient(station, id, client_cmd):
     global global_flag
-    for i in range(200):
+    for i in range(100):
         print(client_cmd.format(id=id))
+        print(station.position)
         station.sendCmd(client_cmd.format(id=id))
         output = station.monitor(timeoutms=30000)
 
@@ -103,11 +104,12 @@ def topology(args, server_cmd, client_cmd):
 
     # ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='55,50,0', datapath='user')
     # ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='45,50,0', datapath='user')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='25,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='75,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='45,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='55,50,0')
     stations = []
+    model_list = ["mob1", "gm2d", "rwp2d", "rpgm2d", "gm3d", "rwp3d", "rpgm3d"]
     for i in range(3, 3 + int(args.clt)):
-        if args.mdl == 'mobi':
+        if args.mdl in model_list:
             sta = net.addStation('sta%d' % i, wlans=2, mac='00:00:00:00:01:%02d' % i)
             stations.append(sta)
         elif args.mdl == 'none': #same place
@@ -133,7 +135,7 @@ def topology(args, server_cmd, client_cmd):
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=3)
+    net.setPropagationModel(model="logDistance", exp=3.5)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()
@@ -155,10 +157,24 @@ def topology(args, server_cmd, client_cmd):
 
     if args.mdl == 'mob1':
         net.setMobilityModel(time=0, model='TruncatedLevyWalk', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
-    elif args.mdl == 'mob2':
-        net.setMobilityModel(time=0, model='GaussMarkov', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
-    elif args.mdl == 'mob3':
-        net.setMobilityModel(time=0, model='TimeVariantCommunity', max_x=100, max_y=100, seed=20, min_v=1, max_v=2, velocity=(1., 2.), FL_MAX=200., alpha=0.5, variance=4.)
+    elif args.mdl == 'gm3d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/gauss_markov_3d20.csv")
+    elif args.mdl == 'rwp3d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/random_waypoint_3d20.csv")
+    elif args.mdl == 'rpgm3d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/reference_point_group_mobility_3d20.csv")
+    elif args.mdl == 'gm2d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/gauss_markov_2d20.csv")
+    elif args.mdl == 'rpgm2d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/random_waypoint_2d20.csv")
+    elif args.mdl == 'rwp2d':
+        net.setMobilityModel(time=0, model="Custom", mob_file="mobilityModel/4mps/reference_point_group_mobility_2d20.csv")
+    # elif args.mdl == 'gm2d':
+    #     net.setMobilityModel(time=0, model='GaussMarkov', max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., FL_MAX=200., alpha=0.5, variance=4.)
+    # elif args.mdl == 'rpgm2d':
+    #     net.setMobilityModel(time=0, model='ReferencePoint', n_groups=2, max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., seed=20)
+    # elif args.mdl == 'rwp2d':
+    #     net.setMobilityModel(time=0, model='RandomWayPoint', max_x=100, max_y=100, velocity=(2., 4.), velocity_mean=3., FL_MAX=200., alpha=0.5, variance=4.)
 
     net.build()
     # CLI(net)
@@ -187,10 +203,16 @@ def topology(args, server_cmd, client_cmd):
     s1.cmd('tc qdisc del dev s1-eth2 root')
     s1.cmd('tc qdisc del dev s1-eth3 root')
     if int(args.var) == 0:
-        r1.cmd('sudo tc qdisc add dev r1-eth2 root handle 1:0 netem delay 15ms')
-        r0.cmd('sudo tc qdisc add dev r0-eth2 root handle 1:0 netem delay {}ms'.format(args.los))
-        s1.cmd('sudo tc qdisc add dev s1-eth3 root handle 1:0 netem delay 15ms')
-        s1.cmd('sudo tc qdisc add dev s1-eth2 root handle 1:0 netem delay {}ms'.format(args.los))
+        varrate1 = 1.2
+        los1 = 1.5
+        r1.cmd('sudo tc qdisc add dev r1-eth2 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, los1))
+        s1.cmd('sudo tc qdisc add dev s1-eth3 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, los1))
+        if int(args.var) == 0:
+            r0.cmd('sudo tc qdisc add dev r0-eth2 root handle 1:0 netem delay {}ms'.format(args.owd))
+            s1.cmd('sudo tc qdisc add dev s1-eth2 root handle 1:0 netem delay {}ms'.format(args.owd))
+        else:
+            r0.cmd('sudo tc qdisc add dev r0-eth2 root handle 1:0 netem delay {}ms loss {}% 50%'.format(args.owd, args.los))
+            s1.cmd('sudo tc qdisc add dev s1-eth2 root handle 1:0 netem delay {}ms loss {}% 50%'.format(args.owd, args.los))  
 
         r1.cmd('sudo tc qdisc add dev r1-eth2 parent 1:1 handle 10:0 tbf rate 40Mbit burst 50kb limit 500kb')
         r0.cmd('sudo tc qdisc add dev r0-eth2 parent 1:1 handle 10:0 tbf rate {}Mbit burst 50kb limit 500kb'.format(args.bwd))
@@ -198,12 +220,14 @@ def topology(args, server_cmd, client_cmd):
         s1.cmd('sudo tc qdisc add dev s1-eth2 parent 1:1 handle 10:0 tbf rate {}Mbit burst 50kb limit 500kb'.format(args.bwd))
 
     else:
-        varrate1 = 15.0 * float(args.var) / 100
+        # varrate1 = 15.0 * float(args.var) / 100
+        varrate1 = 1.2
+        los1 = 1.5
         varrate2 = float(args.owd) * float(args.var) / 100
 
-        r1.cmd('sudo tc qdisc add dev r1-eth2 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, args.los))
+        r1.cmd('sudo tc qdisc add dev r1-eth2 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, los1))
         r0.cmd('sudo tc qdisc add dev r0-eth2 root handle 1:0 netem delay {}ms {}ms 75% loss {}% 50%'.format(args.owd, varrate2, args.los))
-        s1.cmd('sudo tc qdisc add dev s1-eth3 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, args.los))
+        s1.cmd('sudo tc qdisc add dev s1-eth3 root handle 1:0 netem delay 15ms {}ms 75% loss {}% 50%'.format(varrate1, los1))
         s1.cmd('sudo tc qdisc add dev s1-eth2 root handle 1:0 netem delay {}ms {}ms 75% loss {}% 50%'.format(args.owd, varrate2, args.los))
 
         r1.cmd('sudo tc qdisc add dev r1-eth2 parent 1:1 handle 10:0 tbf rate 40Mbit burst 50kb limit 500kb')

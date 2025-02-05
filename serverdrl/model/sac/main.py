@@ -1,4 +1,6 @@
 import math
+import os
+import csv
 import random
 import numpy as np
 import torch
@@ -32,16 +34,13 @@ class ReplayBuffer:
         return state
 
     @staticmethod
-    def normalize_reward(reward):
-        global reward_min, reward_max
-        if reward < reward_min:
-            reward_min = reward
-        if reward > reward_max:
-            reward_max = reward
-        if reward_max > reward_min:
-            return (reward - reward_min) / (reward_max - reward_min)
-        else:
-            return 0.0  # Avoid division by zero
+    def normalize_reward(self, reward):
+        # Thêm phần thưởng mới vào lịch sử và chuẩn hóa nó
+        self.reward_history.append(reward)
+        mean_reward = np.mean(self.reward_history)
+        std_reward = np.std(self.reward_history) + 1e-5  # Tránh chia cho 0
+        normalized_reward = (reward - mean_reward) / std_reward
+        return normalized_reward
 
     def add(self, state, action, reward, next_state, done):
         state = self.normalize(state)  #  Normalize state
@@ -127,7 +126,7 @@ class SACAgent:
         self.critic2_optimizer = optim.Adam(self.critic2.parameters(), lr=learningrate, weight_decay=1e-4)
 
         # Adaptive alpha
-        self.target_entropy = -action_dim
+        self.target_entropy = -(action_dim * 0.5)
         self.log_alpha = torch.tensor(0.0, requires_grad=True, device=device)  # Đảm bảo log_alpha ở đúng thiết bị
         self.alpha_optimizer = optim.Adam([self.log_alpha], lr=learningrate) 
 
@@ -165,39 +164,40 @@ class SACAgent:
 
         states, actions, rewards, next_states, dones = self.replay_buffer.sample(batch_size)
 
-        with torch.no_grad():
-            next_actions, next_log_probs = self.actor.sample_action(next_states)
-            # noise = torch.normal(mean=0, std=0.2, size=next_actions.shape).clamp(-0.5, 0.5).to(device)
-            # next_actions = (next_actions + noise).clamp(-1, 1)  # Giới hạn giá trị hành động
-            target_q1 = self.target_critic1(next_states, next_actions)
-            target_q2 = self.target_critic2(next_states, next_actions)
-            target_q = torch.min(target_q1, target_q2) - self.alpha * next_log_probs
-            target_q = rewards + (1 - dones) * self.discount * target_q
+        for _ in range(1):  # Cập nhật critic 3 lần trước khi cập nhật actor
+            with torch.no_grad():
+                next_actions, next_log_probs = self.actor.sample_action(next_states)
+                # noise = torch.normal(mean=0, std=0.2, size=next_actions.shape).clamp(-0.5, 0.5).to(device)
+                # next_actions = (next_actions + noise).clamp(-1, 1)  # Giới hạn giá trị hành động
+                target_q1 = self.target_critic1(next_states, next_actions)
+                target_q2 = self.target_critic2(next_states, next_actions)
+                target_q = torch.min(target_q1, target_q2) - self.alpha * next_log_probs
+                target_q = rewards + (1 - dones) * self.discount * target_q
 
-        current_q1 = self.critic1(states, actions)
-        current_q2 = self.critic2(states, actions)
+            current_q1 = self.critic1(states, actions)
+            current_q2 = self.critic2(states, actions)
 
-        critic1_loss = F.mse_loss(current_q1, target_q)
-        critic2_loss = F.mse_loss(current_q2, target_q)
+            critic1_loss = F.mse_loss(current_q1, target_q)
+            critic2_loss = F.mse_loss(current_q2, target_q)
 
-        self.critic1_optimizer.zero_grad()
-        critic1_loss.backward()
-        # Gradient clipping for critic1
-        # torch.nn.utils.clip_grad_norm_(self.critic1.parameters(), max_norm=1.0)
-        self.critic1_optimizer.step()
+            self.critic1_optimizer.zero_grad()
+            critic1_loss.backward()
+            # Gradient clipping for critic1
+            # torch.nn.utils.clip_grad_norm_(self.critic1.parameters(), max_norm=1.0)
+            self.critic1_optimizer.step()
 
-        self.critic2_optimizer.zero_grad()
-        critic2_loss.backward()
-        # Gradient clipping for critic2
-        # torch.nn.utils.clip_grad_norm_(self.critic2.parameters(), max_norm=1.0)
-        self.critic2_optimizer.step()
+            self.critic2_optimizer.zero_grad()
+            critic2_loss.backward()
+            # Gradient clipping for critic2
+            # torch.nn.utils.clip_grad_norm_(self.critic2.parameters(), max_norm=1.0)
+            self.critic2_optimizer.step()
 
-        self.critic1_loss_history.append(critic1_loss.item())
-        self.critic2_loss_history.append(critic2_loss.item())
+            self.critic1_loss_history.append(critic1_loss.item())
+            self.critic2_loss_history.append(critic2_loss.item())
 
-        # Scheduler step for critics
-        self.critic1_scheduler.step(critic1_loss)
-        self.critic2_scheduler.step(critic2_loss)
+            # Scheduler step for critics
+            self.critic1_scheduler.step(critic1_loss)
+            self.critic2_scheduler.step(critic2_loss)
 
         new_actions, log_probs = self.actor.sample_action(states)
         q1_new = self.critic1(states, new_actions)
@@ -210,8 +210,15 @@ class SACAgent:
         actor_loss.backward()
         self.actor_optimizer.step()
 
-        # Scheduler step for actor
-        self.actor_scheduler.step(actor_loss)
+        # Cập nhật alpha
+        alpha_loss = -(self.log_alpha.exp() * (log_probs + self.target_entropy).detach()).mean()
+        self.alpha_optimizer.zero_grad()
+        alpha_loss.backward()
+        self.alpha_optimizer.step()
+
+        # Cập nhật giá trị alpha
+        self.alpha = self.log_alpha.exp().item()
+        self.alpha_loss_history.append(alpha_loss.item())
 
         # Updating target networks
         for param, target_param in zip(self.critic1.parameters(), self.target_critic1.parameters()):
@@ -222,22 +229,24 @@ class SACAgent:
 
         # Update alpha
         # Alpha loss calculation (based on the SAC algorithm theory)
-        alpha_loss = -(self.log_alpha.exp() * (log_probs + self.target_entropy).detach()).mean()
+        # alpha_loss = -(self.log_alpha.exp() * (log_probs + self.target_entropy).detach()).mean()
 
-        self.alpha_optimizer.zero_grad()
-        alpha_loss.backward()
-        self.alpha_optimizer.step()
+        # self.alpha_optimizer.zero_grad()
+        # alpha_loss.backward()
+        # self.alpha_optimizer.step()
 
-        # Update alpha value
-        self.alpha = self.log_alpha.exp().item()
-        self.alpha_loss_history.append(alpha_loss.item())
+        # # Update alpha value
+        # self.alpha = self.log_alpha.exp().item()
+        # self.alpha_loss_history.append(alpha_loss.item())
 
         # Scheduler step cho alpha
-        self.alpha_scheduler.step(alpha_loss)
+        # self.alpha_scheduler.step(alpha_loss)
 
         self.rewards_history.append(rewards.sum().item())
         print("TRAINED")
         self.plot_training_history(model_id)
+        if len(self.critic1_loss_history) == 1000:
+            self.save_training_history(model_id)
 
     def add_reward(self, reward):
         self.rewards_history.append(reward)
@@ -247,6 +256,41 @@ class SACAgent:
         for action in self.action_history:
             print(action)
 
+    def save_training_history(self, model_id):
+        # Tạo thư mục lưu trữ nếu chưa có
+        os.makedirs('logs', exist_ok=True)
+
+        # Lưu lịch sử critic1_loss
+        with open(f'logs/critic1_loss_history_{model_id}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Episode', 'Critic 1 Loss'])
+            writer.writerows(enumerate(self.critic1_loss_history, start=1))
+        
+        # Lưu lịch sử critic2_loss
+        with open(f'logs/critic2_loss_history_{model_id}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Episode', 'Critic 2 Loss'])
+            writer.writerows(enumerate(self.critic2_loss_history, start=1))
+
+        # Lưu lịch sử actor_loss
+        with open(f'logs/actor_loss_history_{model_id}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Episode', 'Actor Loss'])
+            writer.writerows(enumerate(self.actor_loss_history, start=1))
+
+        # Lưu lịch sử alpha_loss
+        with open(f'logs/alpha_loss_history_{model_id}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Episode', 'Alpha Loss'])
+            writer.writerows(enumerate(self.alpha_loss_history, start=1))
+
+        # Lưu lịch sử rewards
+        with open(f'logs/rewards_history_{model_id}.csv', mode='w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Episode', 'Reward'])
+            writer.writerows(enumerate(self.rewards_history, start=1))
+        
+        print("Lịch sử đào tạo đã được lưu vào các tệp CSV.")
     def plot_training_history(self, model_id):
         # Ensure logs directory exists
         # if not os.path.exists('logs'):
@@ -257,36 +301,38 @@ class SACAgent:
         # print("Critic2 Loss History:", self.critic2_loss_history)
         # print("Actor Loss History:", self.actor_loss_history)
         # print("Rewards History:", self.rewards_history)
+        plt.rcParams.update({'font.size': 14, 'font.family': 'sans-serif'})
 
-        plt.figure(figsize=(16, 6))
+        plt.figure(figsize=(16, 4))
         plt.subplot(1, 4, 1)
-        plt.plot(self.critic1_loss_history, label='Critic 1 Loss')
-        plt.plot(self.critic2_loss_history, label='Critic 2 Loss')
+        plt.plot(self.critic1_loss_history, label='Critic 1 Loss', color='tab:orange')
+        plt.plot(self.critic2_loss_history, label='Critic 2 Loss', color='tab:pink')
         plt.xlabel('Episodes')
-        plt.ylabel('Loss')
+        plt.ylabel('Value')
         plt.legend()
 
         plt.subplot(1, 4, 2)
-        plt.plot(self.actor_loss_history, label='Actor Loss')
+        plt.plot(self.actor_loss_history, color='tab:orange')
         plt.xlabel('Episodes')
-        plt.ylabel('Loss')
-        plt.legend()
+        plt.ylabel('Actor Loss')
+        # plt.legend()
 
         plt.subplot(1, 4, 3)
-        plt.plot(self.alpha_loss_history, label='Alpha Loss')
+        plt.plot(self.alpha_loss_history, color='tab:orange')
         plt.xlabel('Episodes')
-        plt.ylabel('Loss')
-        plt.legend()
+        plt.ylabel('Alpha Loss')
+        # plt.legend()
 
         plt.subplot(1, 4, 4)
-        plt.plot(self.rewards_history, label='Rewards')
+        plt.plot(self.rewards_history, color='tab:orange')
         plt.xlabel('Episodes')
-        plt.ylabel('Total Reward')
-        plt.legend()
+        plt.ylabel('Average Reward')
+        # plt.legend()
 
         plt.tight_layout()
-        plt.savefig(f'logs/training_history_{model_id}.png') 
+        plt.savefig(f'logs/training_history_{model_id}.pdf', format='pdf') 
         plt.close()
+
 
 class Environment:
     def __init__(self):
@@ -294,5 +340,5 @@ class Environment:
         action_dim = 1
         learningrate = 1e-5
         discount = 0.995
-        tau = 0.005
+        tau = 0.0001
         self.agent = SACAgent(state_dim, action_dim, learningrate, discount, tau)

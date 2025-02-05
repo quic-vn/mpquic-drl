@@ -689,6 +689,12 @@ func (s *session) handleAckFrame(frame *wire.AckFrame) error {
 
 		}
 	}
+	if s.perspective == protocol.PerspectiveServer && s.scheduler.AdaDivisor == 1 {
+		s.scheduler.csvwriter_lrtt.Write([]string{
+			fmt.Sprintf("%d", int(pth.pathID)),
+			fmt.Sprintf("%.3f", float64(pth.rttStats.LatestRTT().Nanoseconds())/1000000),
+		})
+	}
 	return err
 }
 

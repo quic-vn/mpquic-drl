@@ -126,6 +126,7 @@ type scheduler struct {
 	csvwriter_state_dis *csv.Writer
 	csvwriter_statistic *csv.Writer //rtt, loss,
 	csvwriter_action    *csv.Writer
+	csvwriter_lrtt      *csv.Writer //last rtt
 	csvwriter_flag      bool
 }
 
@@ -290,6 +291,10 @@ func (sch *scheduler) setup() {
 	filePath = "./logs/statistic.csv"
 	f5, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	sch.csvwriter_statistic = csv.NewWriter(f5)
+	filePath = "./logs/lrtt.csv"
+	f6, _ := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
+	sch.csvwriter_lrtt = csv.NewWriter(f6)
+
 	sch.csvwriter_flag = true
 	// fmt.Println("SETUP Scheduler")
 }
@@ -563,6 +568,9 @@ pathLoop:
 			fmt.Sprintf("%.2f", float64(cwnd[3])/1024),
 			fmt.Sprintf("%.2f", float64(inp[3])/1024),
 			fmt.Sprintf("%.2f", float64(lRTT[3].Nanoseconds())/1000000),
+			fmt.Sprintf("%d", f_cLevel),
+			fmt.Sprintf("%d", s_cLevel),
+			fmt.Sprintf("%d", selectedPathID),
 		})
 		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
 	}
@@ -1282,19 +1290,7 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 	} else {
 		s_cLevel = 4
 	}
-	//log state
-	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.AdaDivisor == 1 {
-		sch.countState[f_cLevel][s_cLevel]++
-		sch.csvwriter_state.Write([]string{
-			fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
-			fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
-			fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
-			fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
-			fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
-		})
-		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
-	}
+
 	if sch.qtable[f_cLevel][s_cLevel][0] == 0 && sch.qtable[f_cLevel][s_cLevel][1] == sch.qtable[f_cLevel][s_cLevel][0] {
 		//fmt.Println("minrtt1")
 		return sch.selectPathLowLatency(s, hasRetransmission, hasStreamRetransmission, fromPth)
@@ -1305,7 +1301,22 @@ func (sch *scheduler) selectPathQlearning(s *session, hasRetransmission bool, ha
 		action = 1
 		action2 = 0
 	}
-
+	//log state
+	if s.perspective == protocol.PerspectiveServer && sch.model_id == 3 && sch.AdaDivisor == 1 {
+		sch.countState[f_cLevel][s_cLevel]++
+		sch.csvwriter_state.Write([]string{
+			fmt.Sprintf("%.2f", float64(cwnd[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[firstPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[firstPath].Nanoseconds())/1000000),
+			fmt.Sprintf("%.2f", float64(cwnd[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(inp[secondPath])/1024),
+			fmt.Sprintf("%.2f", float64(lRTT[secondPath].Nanoseconds())/1000000),
+			fmt.Sprintf("%d", f_cLevel),
+			fmt.Sprintf("%d", s_cLevel),
+			fmt.Sprintf("%d", s.paths[availablePaths[action]].pathID),
+		})
+		sch.csvwriter_state.Flush() // Gọi Flush() để đảm bảo dữ liệu được ghi ra file
+	}
 	if s.paths[availablePaths[action]].SendingAllowed() {
 		//fmt.Println("qsat")
 		return s.paths[availablePaths[action]]

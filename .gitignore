@@ -3,3 +3,5 @@ simulation/output/*
 simulationFileServer/clientMP*
 simulationFileServer/serverMP*
 simulationFileServer/www/files/*
+simulationFileServer/logs/*
+simulationFileServer/statistic/*

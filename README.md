@@ -8,5 +8,6 @@ requirement:
         mininet-wifi$ sudo util/install.sh -Wlnfv6
 
 serverdrl:
-- flask (pip install Flask)
+- pip install Flask
+- pip install Flask-Executor
 - pytorch (pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118)
