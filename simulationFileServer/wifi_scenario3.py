@@ -19,12 +19,9 @@ from mn_wifi.wmediumdConnector import interference
 from mn_wifi.link import wmediumd
 from mn_wifi.node import Station
 
-# SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 12 -b 0.0.0.0:8080 app:app > ./logs/server-gunicorn.logs 2>&1 & ./serverMPQUIC"
-# SERVER_CMD = "PYTHONPATH=../serverdrl gunicorn -w 4 -b 0.0.0.0:8080 app:app --log-file ./logs/server-flask.logs --log-level info & ./serverMPQUIC"
-# SERVER_CMD="export PYTHONPATH=../serverdrl && export CLIENT_NUM={num} && uvicorn app_FASTAPI:app --host 0.0.0.0 --port 8080 --log-level debug > ./logs/server-uvicorn.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD = "python ../serverdrl/app.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD_SACMULTI = "python ../serverdrl/app_multi.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
-SERVER_CMD_SACMULTIJOINCC = "python ../serverdrl/app_multiJoinCC.py --client {num} > ./logs/server-flask.logs 2>&1 & ./serverMPQUIC"
+SERVER_CMD = "./serverMPQUIC"
+SERVER_CMD_SACMULTI = "./serverMPQUIC"
+SERVER_CMD_SACMULTIJOINCC = "./serverMPQUIC"
 
 CERTPATH = "--certpath ./quic/quic_go_certs"
 SCH = "-scheduler %s"
