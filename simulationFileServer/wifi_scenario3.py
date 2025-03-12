@@ -104,8 +104,8 @@ def topology(args, server_cmd, client_cmd):
 
     # ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='55,50,0', datapath='user')
     # ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='45,50,0', datapath='user')
-    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='g', channel='1', position='45,50,0')
-    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='g', channel='6', position='55,50,0')
+    ap1 = net.addAccessPoint('ap1', mac='00:00:00:00:00:04', ssid='lte-ssid', mode='a', channel='36', position='45,50,0')
+    ap2 = net.addAccessPoint('ap2', mac='00:00:00:00:00:05', ssid='wifi-ssid', mode='a', channel='36', position='55,50,0')
     stations = []
     model_list = ["mob1", "gm2d", "rwp2d", "rpgm2d", "gm3d", "rwp3d", "rpgm3d"]
     for i in range(3, 3 + int(args.clt)):
@@ -135,7 +135,7 @@ def topology(args, server_cmd, client_cmd):
     c1 = net.addController('c1')
 
     info("*** Configuring Propagation Model\n")
-    net.setPropagationModel(model="logDistance", exp=3.5)
+    net.setPropagationModel(model="logDistance", exp=2)
 
     info("*** Configuring wifi nodes\n")
     net.configureWifiNodes()

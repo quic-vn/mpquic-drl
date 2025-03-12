@@ -38,8 +38,8 @@ declare -a losArr=("1.5")
 # declare -a losArr=("0" "0.3" "0.6" "0.9" "1.2" "1.5" "1.8" "2.1" "2.4" "2.7" "3.0") #pkt loss
 
 # declare -a schArr=("sacrx" "sacmulti" "random" "rtt" "peek" "multiclients"  "sacmultiJoinCC")
-# declare -a schArr=("blest" "ecf" "peek" "rtt" "fuzzyqsat" "sac")
-declare -a schArr=("rtt")
+declare -a schArr=("blest" "ecf" "peek" "rtt" "fuzzyqsat" "sac")
+# declare -a schArr=("rtt")
 for mdl in "${mdlArr[@]}"
 do 
     for num in "${numArr[@]}"
