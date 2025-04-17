@@ -23,7 +23,7 @@ def set_model():
     model_id_str = request.json.get('model_id', '0')
 
     try:
-        model_id = int(model_id_str)  # Convert model_id to integer
+        model_id = int(model_id_str)
         if model_id < 0 or model_id > (1 << 64) - 1:
             raise ValueError("model_id out of range for uint64")
     except ValueError as e:
@@ -33,12 +33,13 @@ def set_model():
         return jsonify({'status': f'Model {model_id} already exists'}), 200
 
     if model_type == 'sac':
-        models[model_id] = SACEnv()
-        print(f"Set model: model_type={model_type}, model_id={model_id}")  # Log the model_id
+        models[model_id] = SACEnv(model_id)
+        print(f"Set model: model_type={model_type}, model_id={model_id}", flush=True)
     else:
         return jsonify({'error': 'Invalid model type'}), 400
-    
+
     return jsonify({'status': f'Model set to {model_type} - {model_id}'}), 200
+
 
 def train_model(model, model_id):
     try:
@@ -123,7 +124,7 @@ def update_reward():
         done = data['done']
         model_id = int(data['model_id'])
 
-        executor.submit(models[model_id].agent.replay_buffer.add, state, action, reward, next_state, done)
+        # executor.submit(models[model_id].agent.replay_buffer.add, state, action, reward, next_state, done)
 
         return jsonify({'status': 'Reward updated'}), 200
     except Exception as e:

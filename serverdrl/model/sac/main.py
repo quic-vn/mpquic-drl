@@ -158,6 +158,48 @@ class SACAgent:
         state = self.preprocess_state(state)  #  Normalize state
         return self.actor.get_action_probability(state)
     
+    def load_model(self, model_id):
+        model_path = f"models/sac_model_{model_id}.pth"
+        if os.path.exists(model_path):
+            checkpoint = torch.load(model_path, map_location=device)
+            self.actor.load_state_dict(checkpoint['actor'])
+            self.critic1.load_state_dict(checkpoint['critic1'])
+            self.critic2.load_state_dict(checkpoint['critic2'])
+            self.target_critic1.load_state_dict(checkpoint['target_critic1'])
+            self.target_critic2.load_state_dict(checkpoint['target_critic2'])
+            self.actor_optimizer.load_state_dict(checkpoint['actor_optimizer'])
+            self.critic1_optimizer.load_state_dict(checkpoint['critic1_optimizer'])
+            self.critic2_optimizer.load_state_dict(checkpoint['critic2_optimizer'])
+            self.alpha_optimizer.load_state_dict(checkpoint['alpha_optimizer'])
+            self.log_alpha = checkpoint['log_alpha']
+            self.alpha = checkpoint['alpha']
+            print(f"Model {model_id} loaded successfully from {model_path}")
+        else:
+            print(f"No pre-trained model found for {model_id}. Initializing new model.")
+
+    
+    def save_model(self, model_id):
+        os.makedirs("models", exist_ok=True)  # Tạo thư mục nếu chưa có
+        model_path = f"models/sac_model_{model_id}.pth"
+        if os.path.exists(model_path):
+            os.remove(model_path)  # Xóa file cũ trước khi ghi đè
+        print(f"Saving model {model_id} to {model_path}", flush=True)  # Log thông tin trước khi lưu
+
+        torch.save({
+            'actor': self.actor.state_dict(),
+            'critic1': self.critic1.state_dict(),
+            'critic2': self.critic2.state_dict(),
+            'target_critic1': self.target_critic1.state_dict(),
+            'target_critic2': self.target_critic2.state_dict(),
+            'actor_optimizer': self.actor_optimizer.state_dict(),
+            'critic1_optimizer': self.critic1_optimizer.state_dict(),
+            'critic2_optimizer': self.critic2_optimizer.state_dict(),
+            'alpha_optimizer': self.alpha_optimizer.state_dict(),
+            'log_alpha': self.log_alpha,
+            'alpha': self.alpha
+        }, model_path)
+        print(f"Model {model_id} saved successfully at {model_path}", flush=True)
+    
     def train(self, batch_size=2048, model_id=0):
         if len(self.replay_buffer) < batch_size:
             return
@@ -243,10 +285,13 @@ class SACAgent:
         # self.alpha_scheduler.step(alpha_loss)
 
         self.rewards_history.append(rewards.sum().item())
-        print("TRAINED")
+        # print("TRAINED")
+        print(f"DEBUG: critic1_loss_history length = {len(self.critic1_loss_history)}", flush=True)
         self.plot_training_history(model_id)
-        if len(self.critic1_loss_history) == 1000:
-            self.save_training_history(model_id)
+        if len(self.critic1_loss_history) == 500:
+            print("DEBUG: Calling save_model()", flush=True)
+            # self.save_training_history(model_id)
+            self.save_model(model_id)  # Gọi hàm lưu mô hình
 
     def add_reward(self, reward):
         self.rewards_history.append(reward)
@@ -335,10 +380,11 @@ class SACAgent:
 
 
 class Environment:
-    def __init__(self):
+    def __init__(self, model_id=0):
         state_dim = 6
         action_dim = 1
         learningrate = 1e-5
         discount = 0.995
         tau = 0.0001
         self.agent = SACAgent(state_dim, action_dim, learningrate, discount, tau)
+        self.agent.load_model(model_id)  # Load mô hình nếu có

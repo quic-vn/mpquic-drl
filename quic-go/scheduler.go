@@ -1,6 +1,7 @@
 package quic
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
@@ -228,6 +229,43 @@ func (sch *scheduler) setup() {
 		// }
 		// json.Unmarshal(b, &sch.qtable)
 		// fmt.Println(sch.qtable)
+		// Thử mở file
+		file, err := os.Open("./config/qtable.txt")
+		if err != nil {
+			if os.IsNotExist(err) {
+				fmt.Println("Không tìm thấy file qtable.txt – bỏ qua việc đọc.")
+				// Không đọc gì cả, giữ nguyên qtable mặc định là 0
+			} else {
+				panic(err) // Các lỗi khác vẫn panic
+			}
+		} else {
+			defer file.Close()
+
+			scanner := bufio.NewScanner(file)
+
+			for scanner.Scan() {
+				var i, j int
+				var v0, v1 float64
+
+				_, err := fmt.Sscanf(scanner.Text(), "[%d][%d]: %f %f", &i, &j, &v0, &v1)
+				if err != nil {
+					fmt.Printf("Lỗi đọc dòng: %s\n", scanner.Text())
+					continue
+				}
+
+				sch.qtable[i][j][0] = v0
+				sch.qtable[i][j][1] = v1
+			}
+
+			if err := scanner.Err(); err != nil {
+				panic(err)
+			}
+
+			fmt.Println("Đã đọc qtable từ file.")
+		}
+
+		// In thử
+		fmt.Println("Giá trị qtable[0][0]:", sch.qtable[0][0])
 	}
 
 	if sch.SchedulerName == "dqn" {
@@ -1865,15 +1903,33 @@ func (sch *scheduler) performPacketSending(s *session, windowUpdateFrames []*wir
 					}
 					file2.Close()
 				}
-				if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 && sch.AdaDivisor == 1 {
-					//log
-					for _, row := range sch.countState {
-						var strRow []string
-						for _, val := range row {
-							strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
+				if sch.SchedulerName == "fuzzyqsat" && sch.model_id == 3 {
+					// Mở file để ghi
+					file, err := os.Create("./config/qtable.txt")
+					if err != nil {
+						panic(err)
+					}
+					defer file.Close()
+
+					// Ghi qtable ra file
+					for i := 0; i < 5; i++ {
+						for j := 0; j < 5; j++ {
+							_, err := fmt.Fprintf(file, "[%d][%d]: %f %f\n", i, j, sch.qtable[i][j][0], sch.qtable[i][j][1])
+							if err != nil {
+								panic(err)
+							}
 						}
-						sch.csvwriter_state_dis.Write(strRow)
-						sch.csvwriter_state_dis.Flush()
+					}
+					//log
+					if sch.AdaDivisor == 1 {
+						for _, row := range sch.countState {
+							var strRow []string
+							for _, val := range row {
+								strRow = append(strRow, strconv.FormatUint(uint64(val), 10))
+							}
+							sch.csvwriter_state_dis.Write(strRow)
+							sch.csvwriter_state_dis.Flush()
+						}
 					}
 				}
 			}
